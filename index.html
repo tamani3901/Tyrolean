@@ -6,7 +6,6 @@
   <title>チロルジャン 2009</title>
   <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
   <style>
-    /* 前回と同じスタイル（省略） */
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
     body {
       font-family: 'Hiragino Sans', sans-serif; background: #fdf6ec; color: #4a3b2f;
@@ -95,6 +94,8 @@
       </div>
       <div id="connectionStatus" style="margin-top:8px;">未接続</div>
     </div>
+
+    <button class="btn" id="startCpuGameBtn" style="display:none;">▶️ CPU戦を始める</button>
 
     <div class="opponents-row" id="opponentsContainer"></div>
 
@@ -200,6 +201,7 @@
         resultModalContent: document.getElementById('resultModalContent'),
         roomPlayers: document.getElementById('roomPlayers'),
         startGameBtn: document.getElementById('startGameBtn'),
+        startCpuGameBtn: document.getElementById('startCpuGameBtn'),
       };
 
       function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]; } return a; }
@@ -412,11 +414,18 @@
         DOM.resultModal.style.display='flex';
         document.getElementById('resultOkBtn').addEventListener('click', ()=>{
           DOM.resultModal.style.display='none';
-          if(currentMode==='cpu') newCpuGame();
+          if(currentMode==='cpu') prepareCpuGame();
         });
       }
 
-      // ---- CPU対戦 ----
+      // ---- CPU対戦（開始ボタンで始める） ----
+      function prepareCpuGame(){
+        box=[]; players=[];
+        DOM.handContainer.innerHTML=''; DOM.myDiscardHistory.innerHTML=''; DOM.opponentsContainer.innerHTML='';
+        DOM.boxRemaining.textContent='0'; DOM.startCpuGameBtn.style.display='inline-block';
+        setMsg('「CPU戦を始める」を押してください');
+      }
+
       function newCpuGame(){
         box=createBox();
         players=[
@@ -426,6 +435,7 @@
         myPlayerId=0; currentPlayerIndex=Math.floor(Math.random()*2);
         gameFinished=false; inReach=false;
         DOM.reachBadge.style.display='none';
+        DOM.startCpuGameBtn.style.display='none';
         updateBox(); renderHand(); renderMyDiscard(); renderOpponents();
         if(currentPlayerIndex===0) setMsg('あなたの番です');
         else { setMsg('CPUの番です'); setTimeout(cpuTurn, 1000); }
@@ -466,7 +476,7 @@
         }
       }
 
-      // ---- オンライン対戦（修正版） ----
+      // ---- オンライン対戦（ホストがターンを厳密管理） ----
       function setupHost(roomCode){
         isHost=true;
         peer = new Peer(roomCode);
@@ -547,7 +557,6 @@
         } else if(data.type==='draw'){
           players[playerId].hand = data.hand;
           box = data.box;
-          // もし9枚で役があればクライアントがwinを送るので何もしない
           updateBox();
           broadcastState();
         } else if(data.type==='win'){
@@ -555,7 +564,6 @@
           applyPoints(playerId, yaku.pts, method, from);
           gameFinished = true;
           broadcastState();
-          // 全員にリザルト表示
           Object.values(connections).forEach(conn=>conn.send({type:'gameOver', winnerId:playerId, yaku}));
           if(playerId===myPlayerId) showResult(true, yaku);
           else showResult(false, yaku);
@@ -577,9 +585,6 @@
           updateBox(); renderHand(); renderMyDiscard(); renderOpponents();
           setMsg('ゲーム開始！');
         } else if(data.type==='state'){
-          // 状態更新
-          box = Array(data.boxRemaining).fill(0); // 簡易的に箱の内容は隠す（枚数のみ）
-          updateBox();
           players.forEach((p,idx)=>{
             const pd = data.players[idx];
             if(idx===myPlayerId) return;
@@ -589,6 +594,7 @@
           });
           currentPlayerIndex = data.currentTurn;
           gameFinished = data.gameFinished;
+          updateBox();
           renderOpponents();
           if(currentPlayerIndex===myPlayerId && !gameFinished){
             setMsg('あなたの番です');
@@ -623,7 +629,7 @@
         currentMode='cpu'; document.getElementById('p2pArea').style.display='none';
         document.getElementById('soloModeBtn').classList.add('active');
         document.getElementById('battleModeBtn').classList.remove('active');
-        newCpuGame();
+        prepareCpuGame();
       });
       document.getElementById('battleModeBtn').addEventListener('click',()=>{
         currentMode='online'; document.getElementById('p2pArea').style.display='block';
@@ -642,8 +648,9 @@
       });
       document.getElementById('boxImage').addEventListener('click', drawFromBox);
       document.getElementById('newGameBtn').addEventListener('click', ()=>{
-        if(currentMode==='cpu') newCpuGame();
+        if(currentMode==='cpu') prepareCpuGame();
       });
+      document.getElementById('startCpuGameBtn').addEventListener('click', newCpuGame);
       document.getElementById('resetPointsBtn').addEventListener('click',()=>{
         totalPoints=300; DOM.totalPoints.textContent=300;
         if(players[myPlayerId]) players[myPlayerId].points=300;
@@ -654,8 +661,9 @@
       discardBtn.addEventListener('click', confirmDiscard);
       document.getElementById('gameArea').insertBefore(discardBtn, document.getElementById('messageArea'));
 
-      newCpuGame();
+      prepareCpuGame();
       DOM.totalPoints.textContent = totalPoints;
+      DOM.startCpuGameBtn.style.display='inline-block';
     }
   </script>
 </body>
