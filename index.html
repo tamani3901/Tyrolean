@@ -117,17 +117,17 @@
     </div>
 
     <div id="p2pArea" style="display:none; width:100%; max-width:500px; text-align:center;">
-      <div class="room-area" id="roomSetup">
+      <div class="room-area">
         <p><strong>対戦を始める</strong></p>
-        <button class="btn" id="createRoomBtn">📝 合言葉を作る</button>
-        <div style="margin-top:10px;">または</div>
-        <input class="room-input" type="text" id="roomIdInput" placeholder="合言葉" maxlength="10">
-        <button class="btn" id="joinRoomBtn">🔑 合言葉で参加</button>
-      </div>
-      <div class="room-area" id="roomInfo" style="display:none;">
-        <p>この合言葉を相手に伝えてください</p>
-        <div class="room-id" id="roomIdDisplay"></div>
-        <button class="btn" id="copyRoomBtn">📋 コピー</button>
+        <div style="margin-bottom:10px;">
+          <input class="room-input" type="text" id="roomCodeInput" placeholder="合言葉(数字4桁)" maxlength="6" style="width:180px;">
+          <button class="btn" id="createRoomBtn">📝 親として待つ</button>
+        </div>
+        <div>または</div>
+        <div style="margin-top:10px;">
+          <input class="room-input" type="text" id="joinCodeInput" placeholder="相手の合言葉" maxlength="6" style="width:180px;">
+          <button class="btn" id="joinRoomBtn">🔑 合言葉で参加</button>
+        </div>
       </div>
       <div id="connectionStatus" style="margin-top:8px;">未接続</div>
     </div>
@@ -229,10 +229,6 @@
         opponentArea: document.getElementById('opponentArea'),
         p2pArea: document.getElementById('p2pArea'),
         connectionStatus: document.getElementById('connectionStatus'),
-        roomSetup: document.getElementById('roomSetup'),
-        roomInfo: document.getElementById('roomInfo'),
-        roomIdDisplay: document.getElementById('roomIdDisplay'),
-        roomIdInput: document.getElementById('roomIdInput'),
       };
 
       function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]; } return a; }
@@ -315,19 +311,23 @@
         updateBox(); renderHand(); setMsg('8枚配られました。箱をタップして1枚引いてください');
       }
 
-      // ---- PeerJS接続 ----
-      function setupPeerConnection() {
+      // ---- PeerJS接続（カスタムID） ----
+      function setupPeer(myId, asParent) {
         if (peer) peer.destroy();
-        peer = new Peer();
-        peer.on('open', (id) => {
-          // 合言葉作成ボタンで使う
+        peer = new Peer(myId, { debug: 0 }); // 同じ合言葉 = 同じID
+        peer.on('open', () => {
+          DOM.connectionStatus.textContent = asParent ? '相手の接続待ち...' : '接続中...';
         });
         peer.on('connection', (incomingConn) => {
           conn = incomingConn;
           setupConnectionEvents();
         });
         peer.on('error', (err) => {
-          setMsg('接続エラー: ' + err.type, false);
+          if (err.type === 'unavailable-id') {
+            setMsg('その合言葉はすでに使われています。別の合言葉を試してください。', false);
+          } else {
+            setMsg('接続エラー: ' + err.type, false);
+          }
         });
       }
 
@@ -335,9 +335,10 @@
         conn.on('open', () => {
           DOM.connectionStatus.textContent = '接続完了！';
           DOM.opponentArea.style.display = 'block';
-          // 最初のゲーム状態をやり取り
           if (isParent) {
             startP2PGame();
+          } else {
+            // 子は最初のゲーム状態を受け取る（startで来る）
           }
         });
         conn.on('data', (data) => {
@@ -400,35 +401,28 @@
         setMsg(isParent?'親です。箱をタップして引いてください':'相手の番です');
       }
 
-      // ---- 合言葉UI ----
+      // ---- 合言葉UI（修正） ----
       document.getElementById('createRoomBtn').addEventListener('click', () => {
+        const code = document.getElementById('roomCodeInput').value.trim();
+        if (!/^\d{4,6}$/.test(code)) {
+          setMsg('合言葉は数字4〜6桁で入力してください', false);
+          return;
+        }
         isParent = true;
-        setupPeerConnection();
-        peer.on('open', (id) => {
-          const roomId = id.slice(0, 6); // 短縮ID
-          DOM.roomIdDisplay.textContent = roomId;
-          DOM.roomSetup.style.display = 'none';
-          DOM.roomInfo.style.display = 'block';
-          DOM.connectionStatus.textContent = '相手の接続待ち...';
-        });
-        // 相手からの接続は peer.on('connection') で待つ
+        setupPeer(code, true);
+        DOM.connectionStatus.textContent = `合言葉「${code}」で待機中`;
       });
 
       document.getElementById('joinRoomBtn').addEventListener('click', () => {
-        const roomId = DOM.roomIdInput.value.trim();
-        if (!roomId) return;
+        const code = document.getElementById('joinCodeInput').value.trim();
+        if (!code) return;
         isParent = false;
-        setupPeerConnection();
-        conn = peer.connect(roomId);
-        setupConnectionEvents();
-        DOM.roomSetup.style.display = 'none';
-        DOM.roomInfo.style.display = 'none';
-        DOM.connectionStatus.textContent = '接続中...';
-      });
-
-      document.getElementById('copyRoomBtn').addEventListener('click', () => {
-        const text = DOM.roomIdDisplay.textContent;
-        navigator.clipboard.writeText(text).then(() => setMsg('合言葉をコピーしました'));
+        setupPeer('child-' + Math.random().toString(36).slice(2), false); // 子側はランダムID（相手を指定して接続）
+        peer.on('open', () => {
+          conn = peer.connect(code); // 相手の合言葉IDに接続
+          setupConnectionEvents();
+          DOM.connectionStatus.textContent = '接続中...';
+        });
       });
 
       // モード切替
@@ -441,7 +435,6 @@
       });
       document.getElementById('battleModeBtn').addEventListener('click',()=>{
         currentMode='battle'; DOM.p2pArea.style.display='block'; DOM.opponentArea.style.display='none';
-        DOM.roomSetup.style.display='block'; DOM.roomInfo.style.display='none';
         DOM.connectionStatus.textContent='未接続';
         document.getElementById('battleModeBtn').classList.add('active');
         document.getElementById('soloModeBtn').classList.remove('active');
