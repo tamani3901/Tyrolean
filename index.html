@@ -6,135 +6,51 @@
   <title>チロルジャン 2009</title>
   <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
   <style>
+    /* 前回と同じスタイル（省略） */
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
     body {
       font-family: 'Hiragino Sans', sans-serif; background: #fdf6ec; color: #4a3b2f;
       display: flex; flex-direction: column; align-items: center; padding: 8px 8px 30px; min-height: 100vh;
     }
     h1 { font-size: 1.6rem; color: #8b5a2b; margin: 6px 0 2px; }
-
-    #passwordOverlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: #fdf6ec; display: flex; align-items: center; justify-content: center;
-      z-index: 200; flex-direction: column; gap: 12px;
-    }
-    #passwordInput {
-      padding: 10px 16px; border-radius: 24px; border: 2px solid #d49b3b;
-      font-size: 1rem; width: 200px; text-align: center;
-    }
-
-    #mainApp {
-      display: flex; flex-direction: column; align-items: center; width: 100%;
-    }
+    #passwordOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fdf6ec; display: flex; align-items: center; justify-content: center; z-index: 200; flex-direction: column; gap: 12px; }
+    #passwordInput { padding: 10px 16px; border-radius: 24px; border: 2px solid #d49b3b; font-size: 1rem; width: 200px; text-align: center; }
+    #mainApp { display: flex; flex-direction: column; align-items: center; width: 100%; }
     .mode-bar { display: flex; gap: 8px; margin: 6px 0; }
-    .mode-btn {
-      padding: 6px 16px; border-radius: 20px; border: 2px solid #d49b3b;
-      background: #fff; font-weight: bold; cursor: pointer;
-    }
+    .mode-btn { padding: 6px 16px; border-radius: 20px; border: 2px solid #d49b3b; background: #fff; font-weight: bold; cursor: pointer; }
     .mode-btn.active { background: #f0c27a; border-color: #b37b44; }
-
     .container { width: 100%; max-width: 500px; }
-    .yaku-banner {
-      width: 100%; height: 140px; background: #f7ede0; border: 2px dashed #c9a87c;
-      border-radius: 12px; margin-bottom: 8px; display: flex; align-items: center;
-      justify-content: center; overflow: hidden;
-    }
+    .yaku-banner { width: 100%; height: 140px; background: #f7ede0; border: 2px dashed #c9a87c; border-radius: 12px; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
     .yaku-banner img { max-height: 100%; max-width: 100%; object-fit: contain; }
-
-    .hand-area {
-      display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; min-height: 70px; margin: 6px 0;
-    }
-    .piece-slot {
-      width: 60px; height: 60px; background: #f5e1c4; border-radius: 12px;
-      border: 3px solid #c9a16e; cursor: pointer; background-size: cover; transition: 0.1s;
-    }
+    .hand-area { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; min-height: 70px; margin: 6px 0; }
+    .piece-slot { width: 60px; height: 60px; background: #f5e1c4; border-radius: 12px; border: 3px solid #c9a16e; cursor: pointer; background-size: cover; transition: 0.1s; }
     .piece-slot img { width: 100%; height: 100%; border-radius: 9px; object-fit: cover; }
     .piece-slot.empty { background: #f3ede5; border: 2px dashed #d6c3a5; cursor: default; }
     .piece-slot.selected { border-color: #e05a2a; box-shadow: 0 0 8px #e05a2a; }
-
     .box-section { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 10px 0; }
-    .box-image {
-      width: 80px; height: 80px; background: #d9b382; border-radius: 16px;
-      border: 4px solid #b78b5a; cursor: pointer; background-size: cover;
-    }
-
-    .btn {
-      background: #f0c27a; border: none; border-radius: 30px; padding: 10px 20px;
-      font-weight: bold; font-size: 0.95rem; color: #4a3b2f; box-shadow: 0 4px 0 #b37b44;
-      margin: 4px; cursor: pointer; transition: 0.08s;
-    }
+    .box-image { width: 80px; height: 80px; background: #d9b382; border-radius: 16px; border: 4px solid #b78b5a; cursor: pointer; background-size: cover; }
+    .btn { background: #f0c27a; border: none; border-radius: 30px; padding: 10px 20px; font-weight: bold; font-size: 0.95rem; color: #4a3b2f; box-shadow: 0 4px 0 #b37b44; margin: 4px; cursor: pointer; transition: 0.08s; }
     .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #b37b44; }
     .btn:disabled { opacity: 0.4; pointer-events: none; }
-
     .message { font-weight: bold; margin: 6px 0; color: #b45f2a; text-align: center; }
-
-    .discard-area {
-      background: #fef9f0; border-radius: 20px; padding: 8px; margin: 6px 0;
-      border: 2px solid #e6c89e; font-size: 0.8rem;
-    }
+    .discard-area { background: #fef9f0; border-radius: 20px; padding: 8px; margin: 6px 0; border: 2px solid #e6c89e; font-size: 0.8rem; }
     .discard-history { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
-    .discard-chip {
-      width: 36px; height: 36px; border-radius: 8px; background: #f5e1c4;
-      border: 2px solid #aaa; display: flex; align-items: center; justify-content: center;
-    }
+    .discard-chip { width: 36px; height: 36px; border-radius: 8px; background: #f5e1c4; border: 2px solid #aaa; display: flex; align-items: center; justify-content: center; }
     .discard-chip.latest { border-color: #e05a2a; box-shadow: 0 0 6px #e05a2a; cursor: pointer; }
-
-    .room-area {
-      background: #fffbf2; border: 2px solid #d49b3b; border-radius: 16px;
-      padding: 12px; margin: 10px 0; width: 100%; max-width: 500px; text-align: center;
-    }
-    .room-input {
-      padding: 8px 12px; font-size: 1.5rem; width: 180px; text-align: center;
-      border-radius: 12px; border: 2px solid #d49b3b;
-    }
-
-    .rules-box {
-      background: #fffbf2; border: 2px solid #e6c89e; border-radius: 16px;
-      padding: 10px; margin: 8px 0; font-size: 0.75rem; max-width: 500px;
-    }
-
-    #reachModal, #resultModal {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.7); display: flex; align-items: center;
-      justify-content: center; z-index: 150; flex-direction: column;
-    }
-    #reachModalContent, #resultModalContent {
-      background: #fffbf2; border-radius: 20px; padding: 16px; max-width: 360px; width: 90%;
-      text-align: center;
-    }
-    .reach-yaku-item {
-      padding: 10px; background: #fef9f0; border: 2px solid #d49b3b;
-      border-radius: 12px; margin: 6px 0; cursor: pointer;
-    }
-    .reach-badge {
-      display: inline-block; background: #f0c27a; border-radius: 20px;
-      padding: 4px 12px; font-weight: bold; margin-left: 8px;
-    }
-
-    #reachBadge {
-      display: none; position: fixed; top: 10px; right: 10px;
-      background: #e05a2a; color: white; padding: 4px 14px; border-radius: 20px;
-      font-weight: bold; z-index: 50; font-size: 0.9rem;
-    }
-
-    .opponents-row {
-      display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 6px 0;
-    }
-    .opponent-card {
-      background: #fef9f0; border-radius: 16px; padding: 8px; border: 2px solid #e6c89e;
-      min-width: 150px; flex: 1; max-width: 220px; font-size: 0.8rem;
-    }
-
-    @media (min-width: 768px) {
-      .container { max-width: 900px; }
-      .piece-slot { width: 72px; height: 72px; }
-      .box-image { width: 96px; height: 96px; }
-      .hand-area { gap: 10px; }
-    }
+    .room-area { background: #fffbf2; border: 2px solid #d49b3b; border-radius: 16px; padding: 12px; margin: 10px 0; width: 100%; max-width: 500px; text-align: center; }
+    .room-input { padding: 8px 12px; font-size: 1.5rem; width: 180px; text-align: center; border-radius: 12px; border: 2px solid #d49b3b; }
+    .rules-box { background: #fffbf2; border: 2px solid #e6c89e; border-radius: 16px; padding: 10px; margin: 8px 0; font-size: 0.75rem; max-width: 500px; }
+    #reachModal, #resultModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 150; flex-direction: column; }
+    #reachModalContent, #resultModalContent { background: #fffbf2; border-radius: 20px; padding: 16px; max-width: 360px; width: 90%; text-align: center; }
+    .reach-yaku-item { padding: 10px; background: #fef9f0; border: 2px solid #d49b3b; border-radius: 12px; margin: 6px 0; cursor: pointer; }
+    .reach-badge { display: inline-block; background: #f0c27a; border-radius: 20px; padding: 4px 12px; font-weight: bold; margin-left: 8px; }
+    #reachBadge { display: none; position: fixed; top: 10px; right: 10px; background: #e05a2a; color: white; padding: 4px 14px; border-radius: 20px; font-weight: bold; z-index: 50; font-size: 0.9rem; }
+    .opponents-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 6px 0; }
+    .opponent-card { background: #fef9f0; border-radius: 16px; padding: 8px; border: 2px solid #e6c89e; min-width: 150px; flex: 1; max-width: 220px; font-size: 0.8rem; }
+    @media (min-width: 768px) { .container { max-width: 900px; } .piece-slot { width: 72px; height: 72px; } .box-image { width: 96px; height: 96px; } .hand-area { gap: 10px; } }
   </style>
 </head>
 <body>
-  <!-- パスワードオーバーレイ -->
   <div id="passwordOverlay">
     <h2>🔐 パスワードを入力</h2>
     <input type="password" id="passwordInput" placeholder="パスワード">
@@ -142,10 +58,8 @@
     <p id="passwordError" style="color:#a33; font-size:0.9rem;"></p>
   </div>
 
-  <!-- リーチバッジ -->
   <div id="reachBadge">⚡リーチ中</div>
 
-  <!-- メインアプリ -->
   <div id="mainApp">
     <h1>🍫チロルジャン 2009</h1>
     <div class="mode-bar">
@@ -205,7 +119,6 @@
     </div>
   </div>
 
-  <!-- リーチ・リザルトモーダル -->
   <div id="reachModal" style="display:none;"><div id="reachModalContent"></div></div>
   <div id="resultModal" style="display:none;"><div id="resultModalContent"></div></div>
 
@@ -213,7 +126,6 @@
     const GAME_PASSWORD = '1606tamani';
     const IMAGE_BASE_URL = 'https://raw.githubusercontent.com/tamani3901/Tyrolean/main/img/';
 
-    // パスワード認証
     document.getElementById('passwordSubmitBtn').addEventListener('click', () => {
       if (document.getElementById('passwordInput').value === GAME_PASSWORD) {
         document.getElementById('passwordOverlay').style.display = 'none';
@@ -226,7 +138,6 @@
     function initGame() {
       document.getElementById('yakuBannerImg').src = IMAGE_BASE_URL + 'yaku_all.png';
 
-      // ---------- データ ----------
       const PIECE_TYPES = [
         { id:0, name:'コーヒーヌガー', color:'brown', count:9, file:'coffee_nougat.png' },
         { id:1, name:'ホワイトビス',   color:'blue',  count:6, file:'white_bis.png' },
@@ -268,16 +179,13 @@
         }}
       ];
 
-      // ---------- 状態 ----------
       let box=[], players=[], currentPlayerIndex=0, totalPoints=300, gameFinished=false;
       let currentMode='cpu';
       let myPlayerId=0;
-      let peer=null, connections={};
-      let isHost=false;
+      let peer=null, connections={}, isHost=false;
       let selectedDiscardIndex=null;
-      let inReach=false, reachNeedPieceIds=[], reachYakuName='';
+      let inReach=false, reachNeedPieceIds=[];
 
-      // DOM
       const DOM = {
         handContainer: document.getElementById('handContainer'),
         boxRemaining: document.getElementById('boxRemaining'),
@@ -294,7 +202,6 @@
         startGameBtn: document.getElementById('startGameBtn'),
       };
 
-      // ユーティリティ
       function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]; } return a; }
       function createBox(){ const p=[]; PIECE_TYPES.forEach((t,i)=>{ for(let j=0;j<t.count;j++) p.push(i); }); return shuffle(p); }
       function getCounts(h){ const c=Array(12).fill(0); h.forEach(id=>c[id]++); return c; }
@@ -322,7 +229,6 @@
       function setMyHand(h){ if(players[myPlayerId]) players[myPlayerId].hand = h; }
       function getMyDiscard(){ return players[myPlayerId]?.discard || []; }
 
-      // レンダリング
       function renderHand(){
         DOM.handContainer.innerHTML='';
         const hand = getMyHand();
@@ -335,6 +241,33 @@
             s.addEventListener('click',()=>selectDiscard(i));
           }else s.classList.add('empty');
           DOM.handContainer.appendChild(s);
+        }
+      }
+
+      function selectDiscard(index){
+        if(!isMyTurn() || getMyHand().length!==9){ setMsg('9枚のときに捨てる牌を選んでください', false); return; }
+        DOM.handContainer.querySelectorAll('.piece-slot').forEach(s=>s.classList.remove('selected'));
+        selectedDiscardIndex=index;
+        DOM.handContainer.querySelectorAll('.piece-slot')[index].classList.add('selected');
+        setMsg(`「${PIECE_TYPES[getMyHand()[index]].name}」を捨てますか？ もう一度タップで決定`, true);
+      }
+
+      function confirmDiscard(){
+        if(selectedDiscardIndex===null || getMyHand().length!==9){ setMsg('捨てる牌を選んでください', false); return; }
+        const hand = getMyHand();
+        const piece=hand.splice(selectedDiscardIndex,1)[0];
+        setMyHand(hand);
+        players[myPlayerId].discard.push(piece);
+        renderHand(); renderMyDiscard(); selectedDiscardIndex=null;
+        setMsg(`${PIECE_TYPES[piece].name}を捨てました`);
+        if(currentMode==='cpu'){
+          nextTurn();
+        } else {
+          sendToHost({type:'discard', pieceId:piece, hand, discard:players[myPlayerId].discard});
+        }
+        if(!inReach && getMyHand().length===8){
+          const options=getReachOptions(getMyHand());
+          if(options.length>0) showReachOptions(options);
         }
       }
 
@@ -360,10 +293,7 @@
             const img=document.createElement('img'); img.src=PIECE_TYPES[id].img; img.style.width='100%';
             if(i===p.discard.length-1){
               chip.classList.add('latest');
-              chip.addEventListener('click', (e)=>{
-                e.stopPropagation();
-                ronWithDiscard(id, idx);
-              });
+              chip.addEventListener('click', (e)=>{ e.stopPropagation(); ronWithDiscard(id, idx); });
             }
             chip.appendChild(img);
             discDiv.appendChild(chip);
@@ -377,14 +307,13 @@
       function setMsg(t,good=true){ DOM.messageArea.textContent=t; DOM.messageArea.style.color=good?'#b45f2a':'#a33'; }
       function isMyTurn(){ return players.length>0 && currentPlayerIndex===myPlayerId && !gameFinished; }
 
-      // リーチ
       function showReachOptions(options){
         DOM.reachModalContent.innerHTML='<h3>リーチしますか？</h3><p>可能な役:</p>';
         options.forEach(opt=>{
           const div=document.createElement('div'); div.className='reach-yaku-item';
           div.innerHTML=`${opt.yakuName} <span class="reach-badge">${opt.pts}pt</span><br><small>必要: ${PIECE_TYPES[opt.needPieceId].name}</small>`;
           div.addEventListener('click',()=>{
-            inReach=true; reachNeedPieceIds=[opt.needPieceId]; reachYakuName=opt.yakuName;
+            inReach=true; reachNeedPieceIds=[opt.needPieceId];
             DOM.reachModal.style.display='none'; DOM.reachBadge.style.display='block';
             setMsg(`リーチ: ${opt.yakuName}`);
           });
@@ -396,69 +325,37 @@
         DOM.reachModal.style.display='flex';
       }
 
-      // 捨て牌選択・確定
-      function selectDiscard(index){
-        if(!isMyTurn() || getMyHand().length!==9){ setMsg('9枚のときに捨てる牌を選んでください', false); return; }
-        DOM.handContainer.querySelectorAll('.piece-slot').forEach(s=>s.classList.remove('selected'));
-        selectedDiscardIndex=index;
-        DOM.handContainer.querySelectorAll('.piece-slot')[index].classList.add('selected');
-        setMsg(`「${PIECE_TYPES[getMyHand()[index]].name}」を捨てますか？ もう一度タップで決定`, true);
-      }
-
-      function confirmDiscard(){
-        if(selectedDiscardIndex===null || getMyHand().length!==9){ setMsg('捨てる牌を選んでください', false); return; }
-        const hand = getMyHand();
-        const piece=hand.splice(selectedDiscardIndex,1)[0];
-        setMyHand(hand);
-        players[myPlayerId].discard.push(piece);
-        renderHand(); renderMyDiscard(); selectedDiscardIndex=null;
-        setMsg(`${PIECE_TYPES[piece].name}を捨てました`);
-        if(currentMode==='cpu'){
-          broadcastDiscard(piece);
-          nextTurn();
-        } else {
-          sendToHost({type:'discard', pieceId:piece, hand, discard:players[myPlayerId].discard});
-        }
-        if(!inReach && getMyHand().length===8){
-          const options=getReachOptions(getMyHand());
-          if(options.length>0) showReachOptions(options);
-        }
-      }
-
-      // 箱から引く
       function drawFromBox(){
         if(!isMyTurn() || getMyHand().length>=9 || box.length===0) return;
         if(getMyHand().length!==8){ setMsg('8枚のときに引いてください', false); return; }
         const id=box.pop(); const hand=getMyHand(); hand.push(id); setMyHand(hand);
         updateBox(); renderHand();
-
-        if(getMyHand().length===9){
-          if(inReach){
-            if(reachNeedPieceIds.includes(id)){
-              const yaku=checkYaku(getMyHand());
-              if(yaku){ winGame(yaku,'tsumo'); return; }
-            }
-            const discardId=getMyHand().pop(); setMyHand(getMyHand());
-            players[myPlayerId].discard.push(discardId);
-            setMsg(`${PIECE_TYPES[discardId].name}を引いたが不要なので捨てます`, true);
-            setTimeout(()=>{
-              renderHand(); renderMyDiscard(); updateBox();
-              if(currentMode==='cpu'){ broadcastDiscard(discardId); nextTurn(); }
-              else sendToHost({type:'discard', pieceId:discardId, hand:getMyHand(), discard:players[myPlayerId].discard});
-              if(!inReach && getMyHand().length===8){
-                const options=getReachOptions(getMyHand());
-                if(options.length>0) showReachOptions(options);
+        if(currentMode==='cpu'){
+          if(getMyHand().length===9){
+            if(inReach){
+              if(reachNeedPieceIds.includes(id)){
+                const yaku=checkYaku(getMyHand());
+                if(yaku){ winGame(yaku,'tsumo'); return; }
               }
-            },800);
-            return;
+              const discardId=getMyHand().pop(); setMyHand(getMyHand());
+              players[myPlayerId].discard.push(discardId);
+              setMsg(`${PIECE_TYPES[discardId].name}を引いたが不要なので捨てます`, true);
+              setTimeout(()=>{ renderHand(); renderMyDiscard(); updateBox(); nextTurn(); },800);
+              return;
+            }
+            const yaku=checkYaku(getMyHand());
+            if(yaku){ winGame(yaku,'tsumo'); }
+            else { setMsg('役がありません。捨てる牌を選んでください'); }
+          } else { setMsg(`${PIECE_TYPES[id].name}を引きました`); }
+        } else {
+          sendToHost({type:'draw', hand:getMyHand(), box, pieceId:id});
+          if(getMyHand().length===9){
+            const yaku=checkYaku(getMyHand());
+            if(yaku) sendToHost({type:'win', yaku:yaku, method:'tsumo'});
           }
-          const yaku=checkYaku(getMyHand());
-          if(yaku){ winGame(yaku,'tsumo'); }
-          else { setMsg('役がありません。捨てる牌を選んでください'); }
-        } else { setMsg(`${PIECE_TYPES[id].name}を引きました`); }
+        }
       }
 
-      // ロン
       function ronWithDiscard(discardId, fromIndex){
         if(!isMyTurn() || getMyHand().length!==8) return;
         const testHand=[...getMyHand(), discardId];
@@ -470,7 +367,6 @@
         } else { setMsg('その牌ではアガれません', false); }
       }
 
-      // 点数計算
       function applyPoints(winnerIndex, yakuPts, method, fromIndex = null) {
         const winner = players[winnerIndex];
         winner.points += yakuPts;
@@ -500,9 +396,7 @@
         applyPoints(myPlayerId, yaku.pts, method, fromIndex);
         renderOpponents();
         showResult(true, yaku);
-        if (currentMode === 'online') {
-          sendToHost({type:'win', yaku:yaku, method:method, from:fromIndex});
-        }
+        if(currentMode==='online') sendToHost({type:'win', yaku:yaku, method:method, from:fromIndex});
       }
 
       function cpuWin(yaku, method) {
@@ -543,10 +437,7 @@
         const id=box.pop(); players[1].hand.push(id); updateBox();
         if(players[1].hand.length===9){
           const yaku=checkYaku(players[1].hand);
-          if(yaku){
-            cpuWin(yaku, 'tsumo');
-            return;
-          }
+          if(yaku){ cpuWin(yaku,'tsumo'); return; }
           const counts=getCounts(players[1].hand);
           let min=10, candidates=[];
           counts.forEach((c,i)=>{ if(c>0 && c<min){ min=c; candidates=[i]; } else if(c===min) candidates.push(i); });
@@ -559,8 +450,6 @@
         nextTurn();
       }
 
-      function broadcastDraw(pieceId){}
-      function broadcastDiscard(pieceId){ renderOpponents(); }
       function nextTurn(){
         if(gameFinished) return;
         currentPlayerIndex = (currentPlayerIndex+1) % players.length;
@@ -577,7 +466,7 @@
         }
       }
 
-      // ---- オンライン対戦 ----
+      // ---- オンライン対戦（修正版） ----
       function setupHost(roomCode){
         isHost=true;
         peer = new Peer(roomCode);
@@ -600,12 +489,23 @@
 
       function joinRoom(roomCode){
         isHost=false;
+        const joinBtn = document.getElementById('joinRoomBtn');
+        joinBtn.disabled = true;
+        joinBtn.textContent = '接続中...';
         peer = new Peer('guest-'+Math.random().toString(36).slice(2));
         peer.on('open',()=>{
           const conn = peer.connect(roomCode);
           connections[0] = conn;
           conn.on('data', data=>handleGuestMessage(data));
-          conn.on('open',()=> DOM.connectionStatus.textContent='接続完了');
+          conn.on('open',()=>{
+            DOM.connectionStatus.textContent='接続完了';
+            joinBtn.textContent = '参加済み';
+          });
+          conn.on('error',()=>{
+            joinBtn.disabled = false;
+            joinBtn.textContent = '🔑 参加';
+            DOM.connectionStatus.textContent='接続失敗';
+          });
         });
       }
 
@@ -616,75 +516,109 @@
         players=[{name:'ホスト', hand:box.splice(0,8), discard:[], points:totalPoints}];
         Object.values(connections).forEach((conn,idx)=>{
           const hand = box.splice(0,8);
-          conn.send({type:'start', playerId:idx+1, hand, box:[...box], players:players.map(p=>({name:p.name, points:p.points}))});
+          conn.send({type:'start', playerId:idx+1, hand, box:[...box], players:players.map(p=>({name:p.name, points:p.points})), currentTurn:0});
           players.push({name:`プレイヤー${idx+1}`, hand:[], discard:[], points:300});
         });
         myPlayerId=0; currentPlayerIndex=0; gameFinished=false;
         DOM.startGameBtn.style.display='none';
         updateBox(); renderHand(); renderMyDiscard(); renderOpponents();
         setMsg('ゲーム開始！あなたの番です');
+        broadcastState();
+      }
+
+      function broadcastState(){
+        if(!isHost) return;
+        const state = {
+          type:'state',
+          players: players.map(p=>({name:p.name, points:p.points, handLength:p.hand.length, discard:p.discard})),
+          boxRemaining: box.length,
+          currentTurn: currentPlayerIndex,
+          gameFinished: gameFinished
+        };
+        Object.values(connections).forEach(conn=>conn.send(state));
       }
 
       function handleHostMessage(data, playerId){
         if(data.type==='discard'){
           players[playerId].hand = data.hand;
           players[playerId].discard = data.discard;
-          broadcastToOthers(playerId, {type:'opponentDiscard', playerId, discard:data.discard, handCount:data.hand.length});
           nextTurnOnline();
+          broadcastState();
+        } else if(data.type==='draw'){
+          players[playerId].hand = data.hand;
+          box = data.box;
+          // もし9枚で役があればクライアントがwinを送るので何もしない
+          updateBox();
+          broadcastState();
         } else if(data.type==='win'){
           const {yaku, method, from} = data;
           applyPoints(playerId, yaku.pts, method, from);
+          gameFinished = true;
+          broadcastState();
+          // 全員にリザルト表示
+          Object.values(connections).forEach(conn=>conn.send({type:'gameOver', winnerId:playerId, yaku}));
           if(playerId===myPlayerId) showResult(true, yaku);
           else showResult(false, yaku);
-          gameFinished=true;
         }
       }
 
       function handleGuestMessage(data){
         if(data.type==='start'){
-          myPlayerId=data.playerId;
-          box=data.box;
+          myPlayerId = data.playerId;
+          box = data.box;
           players = data.players.map((p,idx)=>({
-            name: idx===myPlayerId ? 'あなた' : p.name,
+            name: idx===myPlayerId?'あなた':p.name,
             hand: idx===myPlayerId ? data.hand : [],
             discard:[],
             points: p.points
           }));
-          currentPlayerIndex=0; gameFinished=false;
+          currentPlayerIndex = data.currentTurn;
+          gameFinished = false;
           updateBox(); renderHand(); renderMyDiscard(); renderOpponents();
           setMsg('ゲーム開始！');
-        } else if(data.type==='opponentDiscard'){
-          const p = players[data.playerId];
-          if(p){ p.discard = data.discard; p.hand = Array(data.handCount).fill(0); }
+        } else if(data.type==='state'){
+          // 状態更新
+          box = Array(data.boxRemaining).fill(0); // 簡易的に箱の内容は隠す（枚数のみ）
+          updateBox();
+          players.forEach((p,idx)=>{
+            const pd = data.players[idx];
+            if(idx===myPlayerId) return;
+            p.points = pd.points;
+            p.hand = Array(pd.handLength).fill(0);
+            p.discard = pd.discard;
+          });
+          currentPlayerIndex = data.currentTurn;
+          gameFinished = data.gameFinished;
           renderOpponents();
-          if(currentPlayerIndex===myPlayerId) setMsg('あなたの番です');
-        } else if(data.type==='win'){
-          // 処理
+          if(currentPlayerIndex===myPlayerId && !gameFinished){
+            setMsg('あなたの番です');
+            if(!inReach && getMyHand().length===8){
+              const options=getReachOptions(getMyHand());
+              if(options.length>0) showReachOptions(options);
+            }
+          } else {
+            setMsg('相手の番です');
+          }
+        } else if(data.type==='gameOver'){
+          const {winnerId, yaku} = data;
+          if(winnerId===myPlayerId) showResult(true, yaku);
+          else showResult(false, yaku);
+          gameFinished = true;
         }
       }
 
       function sendToHost(data){ if(connections[0]) connections[0].send(data); }
-      function broadcastToOthers(senderId, data){
-        Object.entries(connections).forEach(([id,conn])=>{ if(parseInt(id)!==senderId) conn.send(data); });
-      }
+
       function nextTurnOnline(){
         currentPlayerIndex = (currentPlayerIndex+1) % players.length;
-        if(currentPlayerIndex===myPlayerId){
-          setMsg('あなたの番です');
-          if(!inReach && getMyHand().length===8){
-            const options=getReachOptions(getMyHand());
-            if(options.length>0) showReachOptions(options);
-          }
-        } else {
-          setMsg('相手の番です');
-        }
       }
+
       function updateRoomPlayers(){
         const count = Object.keys(connections).length+1;
         DOM.roomPlayers.textContent = `参加者: ${count}人`;
       }
 
-      // ---- モード切替（再設定不要、初回のみ有効） ----
+      // ---- モード切替 ----
       document.getElementById('soloModeBtn').addEventListener('click',()=>{
         currentMode='cpu'; document.getElementById('p2pArea').style.display='none';
         document.getElementById('soloModeBtn').classList.add('active');
@@ -720,7 +654,6 @@
       discardBtn.addEventListener('click', confirmDiscard);
       document.getElementById('gameArea').insertBefore(discardBtn, document.getElementById('messageArea'));
 
-      // 初回起動
       newCpuGame();
       DOM.totalPoints.textContent = totalPoints;
     }
