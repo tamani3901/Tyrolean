@@ -13,7 +13,6 @@
     }
     h1 { font-size: 1.6rem; color: #8b5a2b; margin: 6px 0 2px; }
 
-    /* パスワードオーバーレイ */
     #passwordOverlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: #fdf6ec; display: flex; align-items: center; justify-content: center;
@@ -24,12 +23,16 @@
       font-size: 1rem; width: 200px; text-align: center;
     }
 
+    #mainApp {
+      display: flex; flex-direction: column; align-items: center; width: 100%;
+    }
     .mode-bar { display: flex; gap: 8px; margin: 6px 0; }
     .mode-btn {
       padding: 6px 16px; border-radius: 20px; border: 2px solid #d49b3b;
       background: #fff; font-weight: bold; cursor: pointer;
     }
     .mode-btn.active { background: #f0c27a; border-color: #b37b44; }
+
     .container { width: 100%; max-width: 500px; }
     .yaku-banner {
       width: 100%; height: 140px; background: #f7ede0; border: 2px dashed #c9a87c;
@@ -37,6 +40,7 @@
       justify-content: center; overflow: hidden;
     }
     .yaku-banner img { max-height: 100%; max-width: 100%; object-fit: contain; }
+
     .hand-area {
       display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; min-height: 70px; margin: 6px 0;
     }
@@ -47,11 +51,13 @@
     .piece-slot img { width: 100%; height: 100%; border-radius: 9px; object-fit: cover; }
     .piece-slot.empty { background: #f3ede5; border: 2px dashed #d6c3a5; cursor: default; }
     .piece-slot.selected { border-color: #e05a2a; box-shadow: 0 0 8px #e05a2a; }
+
     .box-section { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 10px 0; }
     .box-image {
       width: 80px; height: 80px; background: #d9b382; border-radius: 16px;
       border: 4px solid #b78b5a; cursor: pointer; background-size: cover;
     }
+
     .btn {
       background: #f0c27a; border: none; border-radius: 30px; padding: 10px 20px;
       font-weight: bold; font-size: 0.95rem; color: #4a3b2f; box-shadow: 0 4px 0 #b37b44;
@@ -59,7 +65,9 @@
     }
     .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #b37b44; }
     .btn:disabled { opacity: 0.4; pointer-events: none; }
+
     .message { font-weight: bold; margin: 6px 0; color: #b45f2a; text-align: center; }
+
     .discard-area {
       background: #fef9f0; border-radius: 20px; padding: 8px; margin: 6px 0;
       border: 2px solid #e6c89e; font-size: 0.8rem;
@@ -70,6 +78,7 @@
       border: 2px solid #aaa; display: flex; align-items: center; justify-content: center;
     }
     .discard-chip.latest { border-color: #e05a2a; box-shadow: 0 0 6px #e05a2a; cursor: pointer; }
+
     .room-area {
       background: #fffbf2; border: 2px solid #d49b3b; border-radius: 16px;
       padding: 12px; margin: 10px 0; width: 100%; max-width: 500px; text-align: center;
@@ -78,10 +87,12 @@
       padding: 8px 12px; font-size: 1.5rem; width: 180px; text-align: center;
       border-radius: 12px; border: 2px solid #d49b3b;
     }
+
     .rules-box {
       background: #fffbf2; border: 2px solid #e6c89e; border-radius: 16px;
       padding: 10px; margin: 8px 0; font-size: 0.75rem; max-width: 500px;
     }
+
     #reachModal, #resultModal {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.7); display: flex; align-items: center;
@@ -99,11 +110,13 @@
       display: inline-block; background: #f0c27a; border-radius: 20px;
       padding: 4px 12px; font-weight: bold; margin-left: 8px;
     }
+
     #reachBadge {
       display: none; position: fixed; top: 10px; right: 10px;
       background: #e05a2a; color: white; padding: 4px 14px; border-radius: 20px;
       font-weight: bold; z-index: 50; font-size: 0.9rem;
     }
+
     .opponents-row {
       display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 6px 0;
     }
@@ -111,6 +124,7 @@
       background: #fef9f0; border-radius: 16px; padding: 8px; border: 2px solid #e6c89e;
       min-width: 150px; flex: 1; max-width: 220px; font-size: 0.8rem;
     }
+
     @media (min-width: 768px) {
       .container { max-width: 900px; }
       .piece-slot { width: 72px; height: 72px; }
@@ -120,7 +134,7 @@
   </style>
 </head>
 <body>
-  <!-- パスワードオーバーレイ（最初だけ表示） -->
+  <!-- パスワードオーバーレイ -->
   <div id="passwordOverlay">
     <h2>🔐 パスワードを入力</h2>
     <input type="password" id="passwordInput" placeholder="パスワード">
@@ -128,10 +142,11 @@
     <p id="passwordError" style="color:#a33; font-size:0.9rem;"></p>
   </div>
 
-  <!-- メイン画面（常に存在） -->
+  <!-- リーチバッジ -->
   <div id="reachBadge">⚡リーチ中</div>
 
-  <div id="mainApp" style="flex-direction:column; align-items:center; width:100%;">
+  <!-- メインアプリ -->
+  <div id="mainApp">
     <h1>🍫チロルジャン 2009</h1>
     <div class="mode-bar">
       <button class="mode-btn active" id="soloModeBtn">🧑‍💻 CPU対戦</button>
@@ -152,11 +167,15 @@
     <div id="p2pArea" style="display:none; width:100%; max-width:500px; text-align:center;">
       <div class="room-area">
         <p><strong>対戦を始める（2〜4人）</strong></p>
-        <div><input class="room-input" id="roomCodeInput" placeholder="合言葉(数字4桁)" maxlength="6">
-        <button class="btn" id="createRoomBtn">📝 部屋を作る</button></div>
+        <div>
+          <input class="room-input" id="roomCodeInput" placeholder="合言葉(数字4桁)" maxlength="6">
+          <button class="btn" id="createRoomBtn">📝 部屋を作る</button>
+        </div>
         <div>または</div>
-        <div><input class="room-input" id="joinCodeInput" placeholder="合言葉を入力" maxlength="6">
-        <button class="btn" id="joinRoomBtn">🔑 参加</button></div>
+        <div>
+          <input class="room-input" id="joinCodeInput" placeholder="合言葉を入力" maxlength="6">
+          <button class="btn" id="joinRoomBtn">🔑 参加</button>
+        </div>
         <div id="roomPlayers" style="margin-top:8px; font-size:0.9rem;"></div>
         <button class="btn" id="startGameBtn" style="display:none;">▶️ ゲーム開始</button>
       </div>
@@ -186,6 +205,7 @@
     </div>
   </div>
 
+  <!-- リーチ・リザルトモーダル -->
   <div id="reachModal" style="display:none;"><div id="reachModalContent"></div></div>
   <div id="resultModal" style="display:none;"><div id="resultModalContent"></div></div>
 
@@ -193,11 +213,10 @@
     const GAME_PASSWORD = '1606tamani';
     const IMAGE_BASE_URL = 'https://raw.githubusercontent.com/tamani3901/Tyrolean/main/img/';
 
-    // パスワード処理
+    // パスワード認証
     document.getElementById('passwordSubmitBtn').addEventListener('click', () => {
       if (document.getElementById('passwordInput').value === GAME_PASSWORD) {
         document.getElementById('passwordOverlay').style.display = 'none';
-        // メイン画面はすでに表示されているので、ゲーム初期化
         initGame();
       } else {
         document.getElementById('passwordError').textContent = 'パスワードが違います';
@@ -207,6 +226,7 @@
     function initGame() {
       document.getElementById('yakuBannerImg').src = IMAGE_BASE_URL + 'yaku_all.png';
 
+      // ---------- データ ----------
       const PIECE_TYPES = [
         { id:0, name:'コーヒーヌガー', color:'brown', count:9, file:'coffee_nougat.png' },
         { id:1, name:'ホワイトビス',   color:'blue',  count:6, file:'white_bis.png' },
@@ -248,13 +268,16 @@
         }}
       ];
 
+      // ---------- 状態 ----------
       let box=[], players=[], currentPlayerIndex=0, totalPoints=300, gameFinished=false;
       let currentMode='cpu';
       let myPlayerId=0;
-      let peer=null, connections={}, roomId=null, isHost=false;
+      let peer=null, connections={};
+      let isHost=false;
       let selectedDiscardIndex=null;
       let inReach=false, reachNeedPieceIds=[], reachYakuName='';
 
+      // DOM
       const DOM = {
         handContainer: document.getElementById('handContainer'),
         boxRemaining: document.getElementById('boxRemaining'),
@@ -271,6 +294,7 @@
         startGameBtn: document.getElementById('startGameBtn'),
       };
 
+      // ユーティリティ
       function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]; } return a; }
       function createBox(){ const p=[]; PIECE_TYPES.forEach((t,i)=>{ for(let j=0;j<t.count;j++) p.push(i); }); return shuffle(p); }
       function getCounts(h){ const c=Array(12).fill(0); h.forEach(id=>c[id]++); return c; }
@@ -298,6 +322,7 @@
       function setMyHand(h){ if(players[myPlayerId]) players[myPlayerId].hand = h; }
       function getMyDiscard(){ return players[myPlayerId]?.discard || []; }
 
+      // レンダリング
       function renderHand(){
         DOM.handContainer.innerHTML='';
         const hand = getMyHand();
@@ -313,6 +338,65 @@
         }
       }
 
+      function renderMyDiscard(){
+        DOM.myDiscardHistory.innerHTML='';
+        getMyDiscard().forEach(id=>{
+          const chip=document.createElement('div'); chip.className='discard-chip';
+          const img=document.createElement('img'); img.src=PIECE_TYPES[id].img; img.style.width='100%';
+          chip.appendChild(img);
+          DOM.myDiscardHistory.appendChild(chip);
+        });
+      }
+
+      function renderOpponents(){
+        DOM.opponentsContainer.innerHTML='';
+        players.forEach((p,idx)=>{
+          if(idx===myPlayerId) return;
+          const card=document.createElement('div'); card.className='opponent-card';
+          card.innerHTML = `<strong>${p.name}</strong> (${p.points}pt)<br>手札: ${p.hand.length}枚`;
+          const discDiv=document.createElement('div'); discDiv.className='discard-history';
+          p.discard.forEach((id, i)=>{
+            const chip=document.createElement('div'); chip.className='discard-chip';
+            const img=document.createElement('img'); img.src=PIECE_TYPES[id].img; img.style.width='100%';
+            if(i===p.discard.length-1){
+              chip.classList.add('latest');
+              chip.addEventListener('click', (e)=>{
+                e.stopPropagation();
+                ronWithDiscard(id, idx);
+              });
+            }
+            chip.appendChild(img);
+            discDiv.appendChild(chip);
+          });
+          card.appendChild(discDiv);
+          DOM.opponentsContainer.appendChild(card);
+        });
+      }
+
+      function updateBox(){ DOM.boxRemaining.textContent=box.length; }
+      function setMsg(t,good=true){ DOM.messageArea.textContent=t; DOM.messageArea.style.color=good?'#b45f2a':'#a33'; }
+      function isMyTurn(){ return players.length>0 && currentPlayerIndex===myPlayerId && !gameFinished; }
+
+      // リーチ
+      function showReachOptions(options){
+        DOM.reachModalContent.innerHTML='<h3>リーチしますか？</h3><p>可能な役:</p>';
+        options.forEach(opt=>{
+          const div=document.createElement('div'); div.className='reach-yaku-item';
+          div.innerHTML=`${opt.yakuName} <span class="reach-badge">${opt.pts}pt</span><br><small>必要: ${PIECE_TYPES[opt.needPieceId].name}</small>`;
+          div.addEventListener('click',()=>{
+            inReach=true; reachNeedPieceIds=[opt.needPieceId]; reachYakuName=opt.yakuName;
+            DOM.reachModal.style.display='none'; DOM.reachBadge.style.display='block';
+            setMsg(`リーチ: ${opt.yakuName}`);
+          });
+          DOM.reachModalContent.appendChild(div);
+        });
+        const cancelBtn=document.createElement('button'); cancelBtn.className='btn'; cancelBtn.textContent='いいえ';
+        cancelBtn.addEventListener('click',()=>{ DOM.reachModal.style.display='none'; });
+        DOM.reachModalContent.appendChild(cancelBtn);
+        DOM.reachModal.style.display='flex';
+      }
+
+      // 捨て牌選択・確定
       function selectDiscard(index){
         if(!isMyTurn() || getMyHand().length!==9){ setMsg('9枚のときに捨てる牌を選んでください', false); return; }
         DOM.handContainer.querySelectorAll('.piece-slot').forEach(s=>s.classList.remove('selected'));
@@ -341,68 +425,12 @@
         }
       }
 
-      function renderMyDiscard(){
-        DOM.myDiscardHistory.innerHTML='';
-        const disc = getMyDiscard();
-        disc.forEach(id=>{
-          const chip=document.createElement('div'); chip.className='discard-chip';
-          const img=document.createElement('img'); img.src=PIECE_TYPES[id].img; img.style.width='100%';
-          chip.appendChild(img);
-          DOM.myDiscardHistory.appendChild(chip);
-        });
-      }
-
-      function renderOpponents(){
-        DOM.opponentsContainer.innerHTML='';
-        players.forEach((p,idx)=>{
-          if(idx===myPlayerId) return;
-          const card=document.createElement('div'); card.className='opponent-card';
-          card.innerHTML = `<strong>${p.name}</strong> (${p.points}pt)<br>手札: ${p.hand.length}枚`;
-          const discDiv=document.createElement('div'); discDiv.className='discard-history';
-          p.discard.forEach((id, i)=>{
-            const chip=document.createElement('div'); chip.className='discard-chip';
-            const img=document.createElement('img'); img.src=PIECE_TYPES[id].img; img.style.width='100%';
-            if(i===p.discard.length-1){
-              chip.classList.add('latest');
-              const fromIdx = idx;
-              chip.addEventListener('click', ()=>ronWithDiscard(id, fromIdx));
-            }
-            chip.appendChild(img);
-            discDiv.appendChild(chip);
-          });
-          card.appendChild(discDiv);
-          DOM.opponentsContainer.appendChild(card);
-        });
-      }
-
-      function updateBox(){ DOM.boxRemaining.textContent=box.length; }
-      function setMsg(t,good=true){ DOM.messageArea.textContent=t; DOM.messageArea.style.color=good?'#b45f2a':'#a33'; }
-      function isMyTurn(){ return players.length>0 && currentPlayerIndex===myPlayerId && !gameFinished; }
-
-      function showReachOptions(options){
-        DOM.reachModalContent.innerHTML='<h3>リーチしますか？</h3><p>可能な役:</p>';
-        options.forEach(opt=>{
-          const div=document.createElement('div'); div.className='reach-yaku-item';
-          div.innerHTML=`${opt.yakuName} <span class="reach-badge">${opt.pts}pt</span><br><small>必要: ${PIECE_TYPES[opt.needPieceId].name}</small>`;
-          div.addEventListener('click',()=>{
-            inReach=true; reachNeedPieceIds=[opt.needPieceId]; reachYakuName=opt.yakuName;
-            DOM.reachModal.style.display='none'; DOM.reachBadge.style.display='block';
-            setMsg(`リーチ: ${opt.yakuName}`);
-          });
-          DOM.reachModalContent.appendChild(div);
-        });
-        const cancelBtn=document.createElement('button'); cancelBtn.className='btn'; cancelBtn.textContent='いいえ';
-        cancelBtn.addEventListener('click',()=>{ DOM.reachModal.style.display='none'; });
-        DOM.reachModalContent.appendChild(cancelBtn);
-        DOM.reachModal.style.display='flex';
-      }
-
+      // 箱から引く
       function drawFromBox(){
         if(!isMyTurn() || getMyHand().length>=9 || box.length===0) return;
         if(getMyHand().length!==8){ setMsg('8枚のときに引いてください', false); return; }
         const id=box.pop(); const hand=getMyHand(); hand.push(id); setMyHand(hand);
         updateBox(); renderHand();
-        if(currentMode==='cpu') broadcastDraw(id);
 
         if(getMyHand().length===9){
           if(inReach){
@@ -430,6 +458,7 @@
         } else { setMsg(`${PIECE_TYPES[id].name}を引きました`); }
       }
 
+      // ロン
       function ronWithDiscard(discardId, fromIndex){
         if(!isMyTurn() || getMyHand().length!==8) return;
         const testHand=[...getMyHand(), discardId];
@@ -441,6 +470,7 @@
         } else { setMsg('その牌ではアガれません', false); }
       }
 
+      // 点数計算
       function applyPoints(winnerIndex, yakuPts, method, fromIndex = null) {
         const winner = players[winnerIndex];
         winner.points += yakuPts;
@@ -521,8 +551,7 @@
           let min=10, candidates=[];
           counts.forEach((c,i)=>{ if(c>0 && c<min){ min=c; candidates=[i]; } else if(c===min) candidates.push(i); });
           const discardId = candidates[Math.floor(Math.random()*candidates.length)];
-          const idx = players[1].hand.findIndex(id=>id===discardId);
-          players[1].hand.splice(idx,1);
+          players[1].hand.splice(players[1].hand.indexOf(discardId),1);
           players[1].discard.push(discardId);
           setMsg(`CPUが${PIECE_TYPES[discardId].name}を捨てました`);
           renderOpponents();
@@ -550,7 +579,7 @@
 
       // ---- オンライン対戦 ----
       function setupHost(roomCode){
-        isHost=true; roomId=roomCode;
+        isHost=true;
         peer = new Peer(roomCode);
         peer.on('open',()=>{
           DOM.connectionStatus.textContent='部屋を作成しました';
@@ -630,7 +659,7 @@
           renderOpponents();
           if(currentPlayerIndex===myPlayerId) setMsg('あなたの番です');
         } else if(data.type==='win'){
-          // 勝敗処理はホストから来る
+          // 処理
         }
       }
 
@@ -655,15 +684,15 @@
         DOM.roomPlayers.textContent = `参加者: ${count}人`;
       }
 
-      // ---- モード切替（initGame内で定義） ----
+      // ---- モード切替（再設定不要、初回のみ有効） ----
       document.getElementById('soloModeBtn').addEventListener('click',()=>{
-        currentMode='cpu'; DOM.p2pArea.style.display='none';
+        currentMode='cpu'; document.getElementById('p2pArea').style.display='none';
         document.getElementById('soloModeBtn').classList.add('active');
         document.getElementById('battleModeBtn').classList.remove('active');
         newCpuGame();
       });
       document.getElementById('battleModeBtn').addEventListener('click',()=>{
-        currentMode='online'; DOM.p2pArea.style.display='block';
+        currentMode='online'; document.getElementById('p2pArea').style.display='block';
         document.getElementById('battleModeBtn').classList.add('active');
         document.getElementById('soloModeBtn').classList.remove('active');
       });
@@ -691,7 +720,7 @@
       discardBtn.addEventListener('click', confirmDiscard);
       document.getElementById('gameArea').insertBefore(discardBtn, document.getElementById('messageArea'));
 
-      // 初期起動
+      // 初回起動
       newCpuGame();
       DOM.totalPoints.textContent = totalPoints;
     }
