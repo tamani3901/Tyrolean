@@ -13,6 +13,18 @@
       display: flex; flex-direction: column; align-items: center; padding: 8px 8px 30px; min-height: 100vh;
     }
     h1 { font-size: 1.6rem; color: #8b5a2b; margin: 6px 0 2px; }
+
+    /* パスワード画面 */
+    #passwordScreen {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: #fdf6ec; display: flex; align-items: center; justify-content: center;
+      z-index: 200; flex-direction: column; gap: 12px;
+    }
+    #passwordInput {
+      padding: 10px 16px; border-radius: 24px; border: 2px solid #d49b3b;
+      font-size: 1rem; width: 200px; text-align: center;
+    }
+
     .mode-bar { display: flex; gap: 8px; margin: 6px 0; }
     .mode-btn {
       padding: 6px 16px; border-radius: 20px; border: 2px solid #d49b3b;
@@ -62,7 +74,6 @@
       border: 2px solid #aaa; display: flex; align-items: center; justify-content: center;
     }
 
-    /* QRまわり */
     #qrModal {
       position: fixed; top:0; left:0; width:100%; height:100%;
       background: rgba(0,0,0,0.7); display: flex; align-items: center;
@@ -80,433 +91,452 @@
   </style>
 </head>
 <body>
-  <h1>🍫チロルジャン 2009</h1>
-  <div class="mode-bar">
-    <button class="mode-btn active" id="soloModeBtn">🧑‍💻 ソロ</button>
-    <button class="mode-btn" id="battleModeBtn">⚔️ 対戦</button>
+  <!-- パスワード画面 -->
+  <div id="passwordScreen">
+    <h2>🔐 パスワードを入力</h2>
+    <input type="password" id="passwordInput" placeholder="パスワード">
+    <button class="btn" id="passwordSubmitBtn">入室</button>
+    <p id="passwordError" style="color:#a33; font-size:0.9rem;"></p>
   </div>
 
-  <div class="rules-box">
-    <details>
-      <summary>📖 ルール</summary>
-      ・8枚スタート→引いて9枚→不要牌を捨てる<br>
-      ・3枚セット×3組でアガリ（9枚）<br>
-      ・相手の捨て牌でもアガれる（ロン）<br>
-      ・役に応じて得点獲得
-    </details>
-  </div>
-
-  <div id="p2pArea" style="display:none; width:100%; max-width:500px; text-align:center;">
-    <p>相手とQRコードで接続</p>
-    <button class="btn" id="showOfferQRBtn">📤 QRコードを表示（親）</button>
-    <button class="btn" id="scanOfferQRBtn">📥 QRを読み取る（子）</button>
-    <div id="connectionStatus" style="margin-top:8px;">未接続</div>
-  </div>
-
-  <div id="opponentArea" class="opponent-area" style="display:none;">
-    <div>🤝 相手の手札: <span id="opponentHandCount">0</span>枚</div>
-    <div style="font-size:0.8rem;">捨て牌（タップでロン可能）:</div>
-    <div class="discard-history" id="opponentDiscardHistory"></div>
-  </div>
-
-  <div class="container" id="gameArea">
-    <div class="yaku-banner" id="yakuBanner">
-      <img src="" alt="役一覧" id="yakuBannerImg">
+  <!-- メインゲーム画面（初期は非表示） -->
+  <div id="mainApp" style="display:none; width:100%; display:flex; flex-direction:column; align-items:center;">
+    <h1>🍫チロルジャン 2009</h1>
+    <div class="mode-bar">
+      <button class="mode-btn active" id="soloModeBtn">🧑‍💻 ソロ</button>
+      <button class="mode-btn" id="battleModeBtn">⚔️ 対戦</button>
     </div>
-    <div class="hand-area" id="handContainer"></div>
-    <div class="box-section">
-      <div class="box-image" id="boxImage"></div>
-      <div>残り <span id="boxRemaining">84</span> 枚</div>
-    </div>
-    <div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap;">
-      <button class="btn" id="newGameBtn">🔄 新しいゲーム</button>
-      <button class="btn" id="resetPointsBtn">💰 ポイントリセット</button>
-    </div>
-    <div class="message" id="messageArea"></div>
-    <div>持ち点: <span id="totalPoints">300</span>pt</div>
-  </div>
 
-  <div id="qrModal" style="display:none;">
-    <div id="qrCanvas"></div>
-    <video id="scanVideo" autoplay playsinline style="display:none;"></video>
-    <button class="btn close-btn" id="closeModalBtn">閉じる</button>
+    <div class="rules-box">
+      <details>
+        <summary>📖 ルール</summary>
+        ・8枚スタート→引いて9枚→不要牌を捨てる<br>
+        ・3枚セット×3組でアガリ（9枚）<br>
+        ・相手の捨て牌でもアガれる（ロン）<br>
+        ・役に応じて得点獲得
+      </details>
+    </div>
+
+    <div id="p2pArea" style="display:none; width:100%; max-width:500px; text-align:center;">
+      <p>相手とQRコードで接続</p>
+      <button class="btn" id="showOfferQRBtn">📤 QRコードを表示（親）</button>
+      <button class="btn" id="scanOfferQRBtn">📥 QRを読み取る（子）</button>
+      <div id="connectionStatus" style="margin-top:8px;">未接続</div>
+    </div>
+
+    <div id="opponentArea" class="opponent-area" style="display:none;">
+      <div>🤝 相手の手札: <span id="opponentHandCount">0</span>枚</div>
+      <div style="font-size:0.8rem;">捨て牌（タップでロン可能）:</div>
+      <div class="discard-history" id="opponentDiscardHistory"></div>
+    </div>
+
+    <div class="container" id="gameArea">
+      <div class="yaku-banner" id="yakuBanner">
+        <img src="" alt="役一覧" id="yakuBannerImg">
+      </div>
+      <div class="hand-area" id="handContainer"></div>
+      <div class="box-section">
+        <div class="box-image" id="boxImage"></div>
+        <div>残り <span id="boxRemaining">84</span> 枚</div>
+      </div>
+      <div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap;">
+        <button class="btn" id="newGameBtn">🔄 新しいゲーム</button>
+        <button class="btn" id="resetPointsBtn">💰 ポイントリセット</button>
+      </div>
+      <div class="message" id="messageArea"></div>
+      <div>持ち点: <span id="totalPoints">300</span>pt</div>
+    </div>
+
+    <div id="qrModal" style="display:none;">
+      <div id="qrCanvas"></div>
+      <video id="scanVideo" autoplay playsinline style="display:none;"></video>
+      <button class="btn close-btn" id="closeModalBtn">閉じる</button>
+    </div>
   </div>
 
   <script>
-    // ★★★ ここをあなたのGitHubリポジトリのRawベースURLに変更 ★★★
-    const IMAGE_BASE_URL = 'https://raw.githubusercontent.com/tamani3901/Tyrolean/main/img/';
-    
-    // 役一覧画像
-    document.getElementById('yakuBannerImg').src = IMAGE_BASE_URL + 'yaku_all.png';
+    // ★★★ パスワード設定（ここを変更） ★★★
+    const GAME_PASSWORD = '1606tamani';
 
-    // ---------- 牌データ ----------
-    const PIECE_TYPES = [
-      { id:0, name:'コーヒーヌガー', color:'brown', count:9, file:'coffee_nougat.png' },
-      { id:1, name:'ホワイトビス',   color:'blue',  count:6, file:'white_bis.png' },
-      { id:2, name:'ミルク',         color:'white', count:9, file:'milk.png' },
-      { id:3, name:'コーヒーフロート', color:'brown', count:6, file:'coffee_float.png' },
-      { id:4, name:'シナモンオレ',   color:'skin',  count:6, file:'cinnamon_ole.png' },
-      { id:5, name:'バニラプリン',   color:'skin',  count:6, file:'vanilla_pudding.png' },
-      { id:6, name:'塩バニラ',       color:'blue',  count:6, file:'salt_vanilla.png' },
-      { id:7, name:'きなこ',         color:'skin',  count:9, file:'kinako.png' },
-      { id:8, name:'いちご大福',     color:'white', count:6, file:'ichigo_daifuku.png' },
-      { id:9, name:'みるく大福',     color:'white', count:6, file:'milk_daifuku.png' },
-      { id:10,name:'アーモンド',     color:'blue',  count:9, file:'almond.png' },
-      { id:11,name:'ヘーゼルナッツ', color:'brown', count:6, file:'hazelnut.png' }
-    ].map(t => ({ ...t, img: IMAGE_BASE_URL + t.file })); // 画像パスを自動生成
+    // ★★★ GitHub画像ベースURL（自分のリポジトリに変更） ★★★
+    const IMAGE_BASE_URL = 'https://raw.githubusercontent.com/あなたのユーザー名/リポジトリ名/main/img/';
 
-    const YAKU_LIST = [
-      { name:'オールワン', pts:300, check:c=>c.some(v=>v===9) },
-      { name:'タブルセット', pts:150, check:c=>c.some(v=>v>=6) },
-      { name:'ワンカラーセット', pts:90, check:(c,hand)=>hand.every(id=>PIECE_TYPES[id].color===PIECE_TYPES[hand[0]].color) },
-      { name:'ミルクセット', pts:120, check:c=>c[2]===3&&c[9]===3&&c[6]===3&&c.reduce((a,b)=>a+b,0)===9 },
-      { name:'おもちセット', pts:120, check:c=>c[7]===3&&c[8]===3&&c[9]===3&&c.reduce((a,b)=>a+b,0)===9 },
-      { name:'ドリンクセット', pts:90, check:c=>c[2]===3&&c[3]===3&&c[4]===3&&c.reduce((a,b)=>a+b,0)===9 },
-      { name:'サクサクおやつセット', pts:90, check:c=>c[10]===3&&c[1]===3&&c[11]===3&&c.reduce((a,b)=>a+b,0)===9 },
-      { name:'キャラセット', pts:75, check:c=>{
-        const allowed=[10,5,3,7,11]; const present=allowed.filter(i=>c[i]>0);
-        return present.length===3 && present.every(i=>c[i]===3) && allowed.every(i=>c[i]===3||c[i]===0) && c.reduce((a,b)=>a+b,0)===9;
-      }},
-      { name:'基本セット', pts:60, check:c=>c[0]===3&&c[2]===3&&c[10]===3&&c.reduce((a,b)=>a+b,0)===9 },
-      { name:'アフタヌーンセット', pts:45, check:c=>{
-        if(c[2]!==3) return false; const a=[0,1], b=[3,4,5,6];
-        const aHit=a.filter(i=>c[i]===3), bHit=b.filter(i=>c[i]===3);
-        if(aHit.length!==1||bHit.length!==1) return false;
-        return c.every((v,i)=>(i===2||i===aHit[0]||i===bHit[0])?v===3:v===0);
-      }},
-      { name:'バラエティ', pts:30, check:c=>{
-        const non=[1,3,4,5,6,7,8,9,11]; return non.every(i=>c[i]===1) && c[0]===0&&c[2]===0&&c[10]===0;
-      }}
-    ];
-
-    // ---------- 状態 ----------
-    let box=[], hand=[], totalPoints=300, gameFinished=false;
-    let currentMode='solo';
-    let peerConnection=null, dataChannel=null;
-    let isParent=false, myTurn=false, opponentHandCount=0;
-    let opponentDiscardHistory=[];
-    let myDiscardHistory=[];
-    let selectedDiscardIndex=null;
-
-    // DOM
-    const DOM = {
-      handContainer: document.getElementById('handContainer'),
-      boxRemaining: document.getElementById('boxRemaining'),
-      messageArea: document.getElementById('messageArea'),
-      totalPoints: document.getElementById('totalPoints'),
-      opponentHandCount: document.getElementById('opponentHandCount'),
-      opponentDiscardHistory: document.getElementById('opponentDiscardHistory'),
-      opponentArea: document.getElementById('opponentArea'),
-      p2pArea: document.getElementById('p2pArea'),
-      connectionStatus: document.getElementById('connectionStatus'),
-      qrModal: document.getElementById('qrModal'),
-      qrCanvas: document.getElementById('qrCanvas'),
-      scanVideo: document.getElementById('scanVideo'),
-    };
-
-    // ---- ユーティリティ ----
-    function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]; } return a; }
-    function createBox(){ const p=[]; PIECE_TYPES.forEach((t,i)=>{ for(let j=0;j<t.count;j++) p.push(i); }); return shuffle(p); }
-    function getCounts(h){ const c=Array(12).fill(0); h.forEach(id=>c[id]++); return c; }
-    function checkYaku(h){
-      const c=getCounts(h);
-      for(let y of YAKU_LIST) if(y.check(c,h)) return {name:y.name, pts:y.pts};
-      let triple=0; for(let i=0;i<c.length;i++) triple+=Math.floor(c[i]/3);
-      return {name:`なんでも3種 ×${Math.min(3,triple)}`, pts:Math.min(3,triple)*15};
-    }
-
-    function renderHand(){
-      DOM.handContainer.innerHTML='';
-      for(let i=0;i<9;i++){
-        const s=document.createElement('div'); s.className='piece-slot';
-        if(i<hand.length){
-          const t=PIECE_TYPES[hand[i]];
-          const img=document.createElement('img'); img.src=t.img; img.alt=t.name;
-          s.appendChild(img);
-          s.addEventListener('click',()=>selectDiscard(i));
-        }else s.classList.add('empty');
-        DOM.handContainer.appendChild(s);
+    // パスワード認証
+    document.getElementById('passwordSubmitBtn').addEventListener('click', () => {
+      const input = document.getElementById('passwordInput').value;
+      if (input === GAME_PASSWORD) {
+        document.getElementById('passwordScreen').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'flex';
+        initGame();
+      } else {
+        document.getElementById('passwordError').textContent = 'パスワードが違います';
       }
-    }
+    });
 
-    function selectDiscard(index) {
-      if (!myTurn || hand.length !== 9) {
-        setMsg('9枚のときに捨てる牌を選んでください', false);
-        return;
+    // ゲーム初期化（認証後に実行）
+    function initGame() {
+      // 役一覧画像
+      document.getElementById('yakuBannerImg').src = IMAGE_BASE_URL + 'yaku_all.png';
+
+      // ---------- 牌データ ----------
+      const PIECE_TYPES = [
+        { id:0, name:'コーヒーヌガー', color:'brown', count:9, file:'coffee_nougat.png' },
+        { id:1, name:'ホワイトビス',   color:'blue',  count:6, file:'white_bis.png' },
+        { id:2, name:'ミルク',         color:'white', count:9, file:'milk.png' },
+        { id:3, name:'コーヒーフロート', color:'brown', count:6, file:'coffee_float.png' },
+        { id:4, name:'シナモンオレ',   color:'skin',  count:6, file:'cinnamon_ole.png' },
+        { id:5, name:'バニラプリン',   color:'skin',  count:6, file:'vanilla_pudding.png' },
+        { id:6, name:'塩バニラ',       color:'blue',  count:6, file:'salt_vanilla.png' },
+        { id:7, name:'きなこ',         color:'skin',  count:9, file:'kinako.png' },
+        { id:8, name:'いちご大福',     color:'white', count:6, file:'ichigo_daifuku.png' },
+        { id:9, name:'みるく大福',     color:'white', count:6, file:'milk_daifuku.png' },
+        { id:10,name:'アーモンド',     color:'blue',  count:9, file:'almond.png' },
+        { id:11,name:'ヘーゼルナッツ', color:'brown', count:6, file:'hazelnut.png' }
+      ].map(t => ({ ...t, img: IMAGE_BASE_URL + t.file }));
+
+      const YAKU_LIST = [
+        { name:'オールワン', pts:300, check:c=>c.some(v=>v===9) },
+        { name:'タブルセット', pts:150, check:c=>c.some(v=>v>=6) },
+        { name:'ワンカラーセット', pts:90, check:(c,hand)=>hand.every(id=>PIECE_TYPES[id].color===PIECE_TYPES[hand[0]].color) },
+        { name:'ミルクセット', pts:120, check:c=>c[2]===3&&c[9]===3&&c[6]===3&&c.reduce((a,b)=>a+b,0)===9 },
+        { name:'おもちセット', pts:120, check:c=>c[7]===3&&c[8]===3&&c[9]===3&&c.reduce((a,b)=>a+b,0)===9 },
+        { name:'ドリンクセット', pts:90, check:c=>c[2]===3&&c[3]===3&&c[4]===3&&c.reduce((a,b)=>a+b,0)===9 },
+        { name:'サクサクおやつセット', pts:90, check:c=>c[10]===3&&c[1]===3&&c[11]===3&&c.reduce((a,b)=>a+b,0)===9 },
+        { name:'キャラセット', pts:75, check:c=>{
+          const allowed=[10,5,3,7,11]; const present=allowed.filter(i=>c[i]>0);
+          return present.length===3 && present.every(i=>c[i]===3) && allowed.every(i=>c[i]===3||c[i]===0) && c.reduce((a,b)=>a+b,0)===9;
+        }},
+        { name:'基本セット', pts:60, check:c=>c[0]===3&&c[2]===3&&c[10]===3&&c.reduce((a,b)=>a+b,0)===9 },
+        { name:'アフタヌーンセット', pts:45, check:c=>{
+          if(c[2]!==3) return false; const a=[0,1], b=[3,4,5,6];
+          const aHit=a.filter(i=>c[i]===3), bHit=b.filter(i=>c[i]===3);
+          if(aHit.length!==1||bHit.length!==1) return false;
+          return c.every((v,i)=>(i===2||i===aHit[0]||i===bHit[0])?v===3:v===0);
+        }},
+        { name:'バラエティ', pts:30, check:c=>{
+          const non=[1,3,4,5,6,7,8,9,11]; return non.every(i=>c[i]===1) && c[0]===0&&c[2]===0&&c[10]===0;
+        }}
+      ];
+
+      // ---------- 状態 ----------
+      let box=[], hand=[], totalPoints=300, gameFinished=false;
+      let currentMode='solo';
+      let peerConnection=null, dataChannel=null;
+      let isParent=false, myTurn=false, opponentHandCount=0;
+      let opponentDiscardHistory=[];
+      let myDiscardHistory=[];
+      let selectedDiscardIndex=null;
+
+      const DOM = {
+        handContainer: document.getElementById('handContainer'),
+        boxRemaining: document.getElementById('boxRemaining'),
+        messageArea: document.getElementById('messageArea'),
+        totalPoints: document.getElementById('totalPoints'),
+        opponentHandCount: document.getElementById('opponentHandCount'),
+        opponentDiscardHistory: document.getElementById('opponentDiscardHistory'),
+        opponentArea: document.getElementById('opponentArea'),
+        p2pArea: document.getElementById('p2pArea'),
+        connectionStatus: document.getElementById('connectionStatus'),
+        qrModal: document.getElementById('qrModal'),
+        qrCanvas: document.getElementById('qrCanvas'),
+        scanVideo: document.getElementById('scanVideo'),
+      };
+
+      function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]; } return a; }
+      function createBox(){ const p=[]; PIECE_TYPES.forEach((t,i)=>{ for(let j=0;j<t.count;j++) p.push(i); }); return shuffle(p); }
+      function getCounts(h){ const c=Array(12).fill(0); h.forEach(id=>c[id]++); return c; }
+      function checkYaku(h){
+        const c=getCounts(h);
+        for(let y of YAKU_LIST) if(y.check(c,h)) return {name:y.name, pts:y.pts};
+        let triple=0; for(let i=0;i<c.length;i++) triple+=Math.floor(c[i]/3);
+        return {name:`なんでも3種 ×${Math.min(3,triple)}`, pts:Math.min(3,triple)*15};
       }
-      const slots = DOM.handContainer.querySelectorAll('.piece-slot');
-      slots.forEach(s => s.classList.remove('selected'));
-      selectedDiscardIndex = index;
-      slots[index].classList.add('selected');
-      setMsg(`「${PIECE_TYPES[hand[index]].name}」を捨てますか？ もう一度タップで決定`, true);
-    }
 
-    function confirmDiscard() {
-      if (selectedDiscardIndex === null || hand.length !== 9) {
-        setMsg('捨てる牌を選んでください', false);
-        return;
+      function renderHand(){
+        DOM.handContainer.innerHTML='';
+        for(let i=0;i<9;i++){
+          const s=document.createElement('div'); s.className='piece-slot';
+          if(i<hand.length){
+            const t=PIECE_TYPES[hand[i]];
+            const img=document.createElement('img'); img.src=t.img; img.alt=t.name;
+            s.appendChild(img);
+            s.addEventListener('click',()=>selectDiscard(i));
+          }else s.classList.add('empty');
+          DOM.handContainer.appendChild(s);
+        }
       }
-      const piece = hand.splice(selectedDiscardIndex, 1)[0];
-      myDiscardHistory.push(piece);
-      sendToPeer({type:'discard', pieceId:piece, hand:hand, discardHistory:myDiscardHistory});
-      renderHand(); myTurn = false; selectedDiscardIndex = null;
-      setMsg(`${PIECE_TYPES[piece].name}を捨てました。相手の番です`);
-    }
 
-    function updateBox(){ DOM.boxRemaining.textContent=box.length; }
-    function setMsg(t,good=true){ DOM.messageArea.textContent=t; DOM.messageArea.style.color=good?'#b45f2a':'#a33'; }
-
-    function canRonWithDiscard(discardId) {
-      const testHand = [...hand, discardId];
-      if (testHand.length !== 9) return false;
-      const yaku = checkYaku(testHand);
-      return yaku.pts > 0;
-    }
-
-    function drawFromBox(){
-      if (!myTurn || hand.length >= 9 || box.length === 0) return;
-      if (hand.length !== 8) { setMsg('8枚のときに引いてください', false); return; }
-
-      const id = box.pop();
-      hand.push(id);
-      updateBox(); renderHand();
-
-      if (hand.length === 9) {
-        const y = checkYaku(hand);
-        if (y.pts > 0) {
-          sendToPeer({type:'win', yaku:y, method:'tsumo'});
-          setMsg(`🎉 ツモ！ ${y.name} +${y.pts}pt`);
-          totalPoints += y.pts; DOM.totalPoints.textContent = totalPoints;
-          gameFinished = true; myTurn = false;
+      function selectDiscard(index) {
+        if (!myTurn || hand.length !== 9) {
+          setMsg('9枚のときに捨てる牌を選んでください', false);
           return;
+        }
+        const slots = DOM.handContainer.querySelectorAll('.piece-slot');
+        slots.forEach(s => s.classList.remove('selected'));
+        selectedDiscardIndex = index;
+        slots[index].classList.add('selected');
+        setMsg(`「${PIECE_TYPES[hand[index]].name}」を捨てますか？ もう一度タップで決定`, true);
+      }
+
+      function confirmDiscard() {
+        if (selectedDiscardIndex === null || hand.length !== 9) {
+          setMsg('捨てる牌を選んでください', false);
+          return;
+        }
+        const piece = hand.splice(selectedDiscardIndex, 1)[0];
+        myDiscardHistory.push(piece);
+        sendToPeer({type:'discard', pieceId:piece, hand:hand, discardHistory:myDiscardHistory});
+        renderHand(); myTurn = false; selectedDiscardIndex = null;
+        setMsg(`${PIECE_TYPES[piece].name}を捨てました。相手の番です`);
+      }
+
+      function updateBox(){ DOM.boxRemaining.textContent=box.length; }
+      function setMsg(t,good=true){ DOM.messageArea.textContent=t; DOM.messageArea.style.color=good?'#b45f2a':'#a33'; }
+
+      function drawFromBox(){
+        if (!myTurn || hand.length >= 9 || box.length === 0) return;
+        if (hand.length !== 8) { setMsg('8枚のときに引いてください', false); return; }
+
+        const id = box.pop();
+        hand.push(id);
+        updateBox(); renderHand();
+
+        if (hand.length === 9) {
+          const y = checkYaku(hand);
+          if (y.pts > 0) {
+            sendToPeer({type:'win', yaku:y, method:'tsumo'});
+            setMsg(`🎉 ツモ！ ${y.name} +${y.pts}pt`);
+            totalPoints += y.pts; DOM.totalPoints.textContent = totalPoints;
+            gameFinished = true; myTurn = false;
+            return;
+          } else {
+            setMsg('役がありません。捨てる牌を選んで「捨てる」ボタンを押してください');
+          }
         } else {
-          setMsg('役がありません。捨てる牌を選んで「捨てる」ボタンを押してください');
+          setMsg(`${PIECE_TYPES[id].name}を引きました`);
         }
-      } else {
-        setMsg(`${PIECE_TYPES[id].name}を引きました`);
       }
-    }
 
-    function ronWithDiscard(discardId) {
-      if (!myTurn || hand.length !== 8) return;
-      const testHand = [...hand, discardId];
-      const yaku = checkYaku(testHand);
-      if (yaku.pts > 0) {
-        hand.push(discardId);
-        sendToPeer({type:'win', yaku:yaku, method:'ron', discardId:discardId});
-        setMsg(`🎉 ロン！ ${yaku.name} +${yaku.pts}pt`);
-        totalPoints += yaku.pts; DOM.totalPoints.textContent = totalPoints;
-        gameFinished = true; myTurn = false;
-        renderHand();
-      } else {
-        setMsg('その牌ではアガれません', false);
-      }
-    }
-
-    function newSoloGame(){
-      box=createBox(); hand=box.splice(0,8); gameFinished=false; myTurn=true;
-      updateBox(); renderHand(); setMsg('8枚配られました。箱をタップして1枚引いてください');
-    }
-
-    // ---- P2P通信（QRコード） ----
-    const RTC_CONFIG = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
-    let offerDesc=null, answerDesc=null;
-
-    function initPeerConnection(){
-      peerConnection = new RTCPeerConnection(RTC_CONFIG);
-      peerConnection.onicecandidate = e => {
-        if(e.candidate) return;
-        if(peerConnection.localDescription?.type==='offer') offerDesc = peerConnection.localDescription;
-        else answerDesc = peerConnection.localDescription;
-      };
-      peerConnection.ondatachannel = e => {
-        dataChannel = e.channel;
-        setupDataChannel();
-      };
-    }
-
-    function createOffer(){
-      initPeerConnection();
-      dataChannel = peerConnection.createDataChannel('game');
-      setupDataChannel();
-      peerConnection.createOffer().then(desc=>{
-        peerConnection.setLocalDescription(desc);
-        checkAndShowQR('offer');
-      });
-    }
-
-    function createAnswer(offerSDP){
-      initPeerConnection();
-      peerConnection.setRemoteDescription(new RTCSessionDescription(offerSDP));
-      peerConnection.createAnswer().then(desc=>{
-        peerConnection.setLocalDescription(desc);
-        checkAndShowQR('answer');
-      });
-    }
-
-    function checkAndShowQR(type){
-      const check = setInterval(()=>{
-        if((type==='offer' && offerDesc) || (type==='answer' && answerDesc)){
-          clearInterval(check);
-          const desc = type==='offer' ? offerDesc : answerDesc;
-          showQRCode(JSON.stringify(desc));
-        }
-      }, 500);
-    }
-
-    function setupDataChannel(){
-      dataChannel.onmessage = e => {
-        const msg = JSON.parse(e.data);
-        if (msg.type === 'draw') {
-          hand = msg.hand; box = msg.box; updateBox(); renderHand();
-          if (hand.length === 9) {
-            const y = checkYaku(hand);
-            if (y.pts > 0) {
-              sendToPeer({type:'win', yaku:y, method:'tsumo'});
-              setMsg(`🎉 ツモ！ ${y.name} +${y.pts}pt`);
-              totalPoints += y.pts; DOM.totalPoints.textContent = totalPoints;
-              gameFinished = true; myTurn = false;
-              return;
-            }
-          }
-          myTurn = true; setMsg('あなたの番です。捨てる牌を選んでください');
-        } else if (msg.type === 'discard') {
-          opponentDiscardHistory = msg.discardHistory;
-          opponentHandCount = msg.hand.length;
-          DOM.opponentHandCount.textContent = opponentHandCount;
-          renderOpponentDiscard();
-          myTurn = true;
-          setMsg('あなたの番です。箱から引くか、相手の捨て牌でロンできます');
-        } else if (msg.type === 'win') {
-          setMsg(`相手の${msg.method==='ron'?'ロン':'ツモ'}！ ${msg.yaku.name}`, false);
+      function ronWithDiscard(discardId) {
+        if (!myTurn || hand.length !== 8) return;
+        const testHand = [...hand, discardId];
+        const yaku = checkYaku(testHand);
+        if (yaku.pts > 0) {
+          hand.push(discardId);
+          sendToPeer({type:'win', yaku:yaku, method:'ron', discardId:discardId});
+          setMsg(`🎉 ロン！ ${yaku.name} +${yaku.pts}pt`);
+          totalPoints += yaku.pts; DOM.totalPoints.textContent = totalPoints;
           gameFinished = true; myTurn = false;
-        } else if (msg.type === 'start') {
-          isParent = msg.isParent;
-          box = msg.box; hand = msg.hand;
-          opponentHandCount = 8;
-          myTurn = isParent;
-          updateBox(); renderHand();
-          DOM.opponentHandCount.textContent = opponentHandCount;
-          setMsg(isParent?'あなたが親です。箱をタップして引いてください':'相手が親です。待機してください');
+          renderHand();
+        } else {
+          setMsg('その牌ではアガれません', false);
         }
-      };
-    }
+      }
 
-    function sendToPeer(data){ if(dataChannel && dataChannel.readyState==='open') dataChannel.send(JSON.stringify(data)); }
+      function newSoloGame(){
+        box=createBox(); hand=box.splice(0,8); gameFinished=false; myTurn=true;
+        updateBox(); renderHand(); setMsg('8枚配られました。箱をタップして1枚引いてください');
+      }
 
-    function renderOpponentDiscard(){
-      DOM.opponentDiscardHistory.innerHTML='';
-      opponentDiscardHistory.forEach(id=>{
-        const chip=document.createElement('div'); chip.className='discard-chip';
-        const img=document.createElement('img'); img.src=PIECE_TYPES[id].img; img.style.width='100%';
-        chip.addEventListener('click', () => ronWithDiscard(id));
-        chip.appendChild(img);
-        DOM.opponentDiscardHistory.appendChild(chip);
-      });
-    }
+      // ---- P2P通信 ----
+      const RTC_CONFIG = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+      let offerDesc=null, answerDesc=null;
 
-    function startP2PGame(){
-      myDiscardHistory=[]; opponentDiscardHistory=[];
-      box=createBox(); hand=box.splice(0,8);
-      const oppHand=box.splice(0,8);
-      sendToPeer({type:'start', isParent:false, box, hand: oppHand});
-      myTurn = isParent;
-      updateBox(); renderHand();
-      DOM.opponentHandCount.textContent = 8;
-      setMsg(isParent?'親です。箱をタップして引いてください':'相手の番です');
-    }
+      function initPeerConnection(){
+        peerConnection = new RTCPeerConnection(RTC_CONFIG);
+        peerConnection.onicecandidate = e => {
+          if(e.candidate) return;
+          if(peerConnection.localDescription?.type==='offer') offerDesc = peerConnection.localDescription;
+          else answerDesc = peerConnection.localDescription;
+        };
+        peerConnection.ondatachannel = e => {
+          dataChannel = e.channel;
+          setupDataChannel();
+        };
+      }
 
-    // QR表示/読み取り
-    function showQRCode(data){
-      DOM.qrCanvas.innerHTML='';
-      DOM.scanVideo.style.display='none';
-      DOM.qrCanvas.style.display='block';
-      new QRCode(DOM.qrCanvas, {text: data, width:200, height:200});
-      DOM.qrModal.style.display='flex';
-    }
+      function createOffer(){
+        initPeerConnection();
+        dataChannel = peerConnection.createDataChannel('game');
+        setupDataChannel();
+        peerConnection.createOffer().then(desc=>{
+          peerConnection.setLocalDescription(desc);
+          checkAndShowQR('offer');
+        });
+      }
 
-    async function scanQRCode(){
-      DOM.qrCanvas.style.display='none';
-      DOM.scanVideo.style.display='block';
-      DOM.qrModal.style.display='flex';
-      const video = DOM.scanVideo;
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      video.srcObject = stream;
-      video.play();
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const scanLoop = setInterval(()=>{
-        if(video.readyState === video.HAVE_ENOUGH_DATA){
-          canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-          ctx.drawImage(video,0,0,canvas.width,canvas.height);
-          const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
-          const code = jsQR(imageData.data, imageData.width, imageData.height);
-          if(code){
-            clearInterval(scanLoop);
-            stream.getTracks().forEach(t=>t.stop());
-            DOM.qrModal.style.display='none';
-            const sdp = JSON.parse(code.data);
-            if(sdp.type==='offer'){
-              createAnswer(sdp);
-              const check2 = setInterval(()=>{
-                if(answerDesc){
-                  clearInterval(check2);
-                  showQRCode(JSON.stringify(answerDesc));
-                }
-              },500);
-            } else if(sdp.type==='answer'){
-              peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
-              DOM.connectionStatus.textContent='接続完了！';
-              DOM.opponentArea.style.display='block';
-              if(isParent) startP2PGame();
+      function createAnswer(offerSDP){
+        initPeerConnection();
+        peerConnection.setRemoteDescription(new RTCSessionDescription(offerSDP));
+        peerConnection.createAnswer().then(desc=>{
+          peerConnection.setLocalDescription(desc);
+          checkAndShowQR('answer');
+        });
+      }
+
+      function checkAndShowQR(type){
+        const check = setInterval(()=>{
+          if((type==='offer' && offerDesc) || (type==='answer' && answerDesc)){
+            clearInterval(check);
+            const desc = type==='offer' ? offerDesc : answerDesc;
+            showQRCode(JSON.stringify(desc));
+          }
+        }, 500);
+      }
+
+      function setupDataChannel(){
+        dataChannel.onmessage = e => {
+          const msg = JSON.parse(e.data);
+          if (msg.type === 'draw') {
+            hand = msg.hand; box = msg.box; updateBox(); renderHand();
+            if (hand.length === 9) {
+              const y = checkYaku(hand);
+              if (y.pts > 0) {
+                sendToPeer({type:'win', yaku:y, method:'tsumo'});
+                setMsg(`🎉 ツモ！ ${y.name} +${y.pts}pt`);
+                totalPoints += y.pts; DOM.totalPoints.textContent = totalPoints;
+                gameFinished = true; myTurn = false;
+                return;
+              }
+            }
+            myTurn = true; setMsg('あなたの番です。捨てる牌を選んでください');
+          } else if (msg.type === 'discard') {
+            opponentDiscardHistory = msg.discardHistory;
+            opponentHandCount = msg.hand.length;
+            DOM.opponentHandCount.textContent = opponentHandCount;
+            renderOpponentDiscard();
+            myTurn = true;
+            setMsg('あなたの番です。箱から引くか、相手の捨て牌でロンできます');
+          } else if (msg.type === 'win') {
+            setMsg(`相手の${msg.method==='ron'?'ロン':'ツモ'}！ ${msg.yaku.name}`, false);
+            gameFinished = true; myTurn = false;
+          } else if (msg.type === 'start') {
+            isParent = msg.isParent;
+            box = msg.box; hand = msg.hand;
+            opponentHandCount = 8;
+            myTurn = isParent;
+            updateBox(); renderHand();
+            DOM.opponentHandCount.textContent = opponentHandCount;
+            setMsg(isParent?'あなたが親です。箱をタップして引いてください':'相手が親です。待機してください');
+          }
+        };
+      }
+
+      function sendToPeer(data){ if(dataChannel && dataChannel.readyState==='open') dataChannel.send(JSON.stringify(data)); }
+
+      function renderOpponentDiscard(){
+        DOM.opponentDiscardHistory.innerHTML='';
+        opponentDiscardHistory.forEach(id=>{
+          const chip=document.createElement('div'); chip.className='discard-chip';
+          const img=document.createElement('img'); img.src=PIECE_TYPES[id].img; img.style.width='100%';
+          chip.addEventListener('click', () => ronWithDiscard(id));
+          chip.appendChild(img);
+          DOM.opponentDiscardHistory.appendChild(chip);
+        });
+      }
+
+      function startP2PGame(){
+        myDiscardHistory=[]; opponentDiscardHistory=[];
+        box=createBox(); hand=box.splice(0,8);
+        const oppHand=box.splice(0,8);
+        sendToPeer({type:'start', isParent:false, box, hand: oppHand});
+        myTurn = isParent;
+        updateBox(); renderHand();
+        DOM.opponentHandCount.textContent = 8;
+        setMsg(isParent?'親です。箱をタップして引いてください':'相手の番です');
+      }
+
+      function showQRCode(data){
+        DOM.qrCanvas.innerHTML='';
+        DOM.scanVideo.style.display='none';
+        DOM.qrCanvas.style.display='block';
+        new QRCode(DOM.qrCanvas, {text: data, width:200, height:200});
+        DOM.qrModal.style.display='flex';
+      }
+
+      async function scanQRCode(){
+        DOM.qrCanvas.style.display='none';
+        DOM.scanVideo.style.display='block';
+        DOM.qrModal.style.display='flex';
+        const video = DOM.scanVideo;
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        video.srcObject = stream;
+        video.play();
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const scanLoop = setInterval(()=>{
+          if(video.readyState === video.HAVE_ENOUGH_DATA){
+            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+            ctx.drawImage(video,0,0,canvas.width,canvas.height);
+            const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height);
+            if(code){
+              clearInterval(scanLoop);
+              stream.getTracks().forEach(t=>t.stop());
+              DOM.qrModal.style.display='none';
+              const sdp = JSON.parse(code.data);
+              if(sdp.type==='offer'){
+                createAnswer(sdp);
+                const check2 = setInterval(()=>{
+                  if(answerDesc){
+                    clearInterval(check2);
+                    showQRCode(JSON.stringify(answerDesc));
+                  }
+                },500);
+              } else if(sdp.type==='answer'){
+                peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
+                DOM.connectionStatus.textContent='接続完了！';
+                DOM.opponentArea.style.display='block';
+                if(isParent) startP2PGame();
+              }
             }
           }
-        }
-      }, 500);
-    }
+        }, 500);
+      }
 
-    // モード切替
-    document.getElementById('soloModeBtn').addEventListener('click',()=>{
-      currentMode='solo'; DOM.p2pArea.style.display='none'; DOM.opponentArea.style.display='none';
+      // モード切替
+      document.getElementById('soloModeBtn').addEventListener('click',()=>{
+        currentMode='solo'; DOM.p2pArea.style.display='none'; DOM.opponentArea.style.display='none';
+        newSoloGame();
+        document.getElementById('soloModeBtn').classList.add('active');
+        document.getElementById('battleModeBtn').classList.remove('active');
+      });
+      document.getElementById('battleModeBtn').addEventListener('click',()=>{
+        currentMode='battle'; DOM.p2pArea.style.display='block'; DOM.opponentArea.style.display='none';
+        setMsg('QRコードで接続');
+        document.getElementById('battleModeBtn').classList.add('active');
+        document.getElementById('soloModeBtn').classList.remove('active');
+      });
+      document.getElementById('showOfferQRBtn').addEventListener('click',()=>{
+        isParent=true; createOffer();
+        DOM.connectionStatus.textContent='Offer QRを表示';
+      });
+      document.getElementById('scanOfferQRBtn').addEventListener('click',()=>{
+        isParent=false; scanQRCode();
+      });
+      document.getElementById('closeModalBtn').addEventListener('click',()=>{
+        DOM.qrModal.style.display='none';
+      });
+      document.getElementById('boxImage').addEventListener('click', drawFromBox);
+      document.getElementById('newGameBtn').addEventListener('click', ()=>{
+        if(currentMode==='solo') newSoloGame();
+        else if(peerConnection) startP2PGame();
+      });
+      document.getElementById('resetPointsBtn').addEventListener('click',()=>{
+        totalPoints=300; DOM.totalPoints.textContent=300;
+      });
+
+      // 捨てるボタン
+      const discardBtn = document.createElement('button');
+      discardBtn.className = 'btn';
+      discardBtn.textContent = '🗑️ 選択した牌を捨てる';
+      discardBtn.addEventListener('click', confirmDiscard);
+      document.getElementById('gameArea').insertBefore(discardBtn, document.getElementById('messageArea'));
+
+      // ソロモードで開始
       newSoloGame();
-      document.getElementById('soloModeBtn').classList.add('active');
-      document.getElementById('battleModeBtn').classList.remove('active');
-    });
-    document.getElementById('battleModeBtn').addEventListener('click',()=>{
-      currentMode='battle'; DOM.p2pArea.style.display='block'; DOM.opponentArea.style.display='none';
-      setMsg('QRコードで接続');
-      document.getElementById('battleModeBtn').classList.add('active');
-      document.getElementById('soloModeBtn').classList.remove('active');
-    });
-    document.getElementById('showOfferQRBtn').addEventListener('click',()=>{
-      isParent=true; createOffer();
-      DOM.connectionStatus.textContent='Offer QRを表示';
-    });
-    document.getElementById('scanOfferQRBtn').addEventListener('click',()=>{
-      isParent=false; scanQRCode();
-    });
-    document.getElementById('closeModalBtn').addEventListener('click',()=>{
-      DOM.qrModal.style.display='none';
-    });
-    document.getElementById('boxImage').addEventListener('click', drawFromBox);
-    document.getElementById('newGameBtn').addEventListener('click', ()=>{
-      if(currentMode==='solo') newSoloGame();
-      else if(peerConnection) startP2PGame();
-    });
-    document.getElementById('resetPointsBtn').addEventListener('click',()=>{
-      totalPoints=300; DOM.totalPoints.textContent=300;
-    });
-
-    // 捨てるボタン
-    const discardBtn = document.createElement('button');
-    discardBtn.className = 'btn';
-    discardBtn.textContent = '🗑️ 選択した牌を捨てる';
-    discardBtn.addEventListener('click', confirmDiscard);
-    document.getElementById('gameArea').insertBefore(discardBtn, document.getElementById('messageArea'));
-
-    // 初期化
-    newSoloGame();
-    DOM.totalPoints.textContent = totalPoints;
+      DOM.totalPoints.textContent = totalPoints;
+    }
   </script>
 </body>
 </html>
