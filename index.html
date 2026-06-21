@@ -4,8 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>チロルジャン 2009</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
     body {
@@ -73,27 +72,18 @@
       border: 2px solid #aaa; display: flex; align-items: center; justify-content: center;
     }
 
-    /* SDP手動交換エリア */
-    .sdp-area {
-      background: #fff; border: 2px solid #d49b3b; border-radius: 16px;
-      padding: 12px; margin: 10px 0; width: 100%; max-width: 500px;
+    .room-area {
+      background: #fffbf2; border: 2px solid #d49b3b; border-radius: 16px;
+      padding: 12px; margin: 10px 0; width: 100%; max-width: 500px; text-align: center;
     }
-    .sdp-textarea {
-      width: 100%; height: 80px; font-size: 0.7rem; border-radius: 8px;
-      border: 1px solid #ccc; padding: 6px; resize: vertical;
+    .room-id {
+      font-size: 2.5rem; font-weight: bold; letter-spacing: 0.2em; color: #8b5a2b;
+      background: #f7ede0; padding: 8px 20px; border-radius: 16px; display: inline-block; margin: 8px;
     }
-
-    #qrModal {
-      position: fixed; top:0; left:0; width:100%; height:100%;
-      background: rgba(0,0,0,0.7); display: flex; align-items: center;
-      justify-content: center; z-index: 100; flex-direction: column;
+    .room-input {
+      padding: 8px 12px; font-size: 1.5rem; width: 150px; text-align: center;
+      border-radius: 12px; border: 2px solid #d49b3b;
     }
-    #qrCanvas {
-      width: 320px; height: 320px; background: white; padding: 12px;
-      border-radius: 20px; display: flex; align-items: center; justify-content: center;
-    }
-    #scanVideo { width: 300px; height: 300px; border-radius: 20px; background: #000; }
-    .close-btn { margin-top: 12px; background: white; padding: 8px 20px; border-radius: 20px; }
 
     .rules-box {
       background: #fffbf2; border: 2px solid #e6c89e; border-radius: 16px;
@@ -127,18 +117,17 @@
     </div>
 
     <div id="p2pArea" style="display:none; width:100%; max-width:500px; text-align:center;">
-      <p>相手と接続</p>
-      <button class="btn" id="showOfferQRBtn">📤 QRコードを表示（親）</button>
-      <button class="btn" id="scanOfferQRBtn">📥 QRを読み取る（子）</button>
-      <button class="btn" id="manualSDPBtn">📋 SDP手動交換</button>
-      <div id="sdpManualArea" style="display:none; margin-top:8px;">
-        <div class="sdp-area">
-          <p><strong>あなたのSDP</strong> <button class="btn" id="copyOwnSDPBtn" style="font-size:0.8rem; padding:4px 12px;">コピー</button></p>
-          <textarea class="sdp-textarea" id="ownSDPText" readonly></textarea>
-          <p style="margin-top:6px;"><strong>相手のSDPを貼り付け</strong></p>
-          <textarea class="sdp-textarea" id="peerSDPText" placeholder="ここに相手のSDPを貼り付け"></textarea>
-          <button class="btn" id="connectWithSDPBtn">📥 接続する</button>
-        </div>
+      <div class="room-area" id="roomSetup">
+        <p><strong>対戦を始める</strong></p>
+        <button class="btn" id="createRoomBtn">📝 合言葉を作る</button>
+        <div style="margin-top:10px;">または</div>
+        <input class="room-input" type="text" id="roomIdInput" placeholder="合言葉" maxlength="10">
+        <button class="btn" id="joinRoomBtn">🔑 合言葉で参加</button>
+      </div>
+      <div class="room-area" id="roomInfo" style="display:none;">
+        <p>この合言葉を相手に伝えてください</p>
+        <div class="room-id" id="roomIdDisplay"></div>
+        <button class="btn" id="copyRoomBtn">📋 コピー</button>
       </div>
       <div id="connectionStatus" style="margin-top:8px;">未接続</div>
     </div>
@@ -164,12 +153,6 @@
       </div>
       <div class="message" id="messageArea"></div>
       <div>持ち点: <span id="totalPoints">300</span>pt</div>
-    </div>
-
-    <div id="qrModal" style="display:none;">
-      <div id="qrCanvas"></div>
-      <video id="scanVideo" autoplay playsinline style="display:none;"></video>
-      <button class="btn close-btn" id="closeModalBtn">閉じる</button>
     </div>
   </div>
 
@@ -231,7 +214,7 @@
 
       let box=[], hand=[], totalPoints=300, gameFinished=false;
       let currentMode='solo';
-      let peerConnection=null, dataChannel=null;
+      let peer = null, conn = null;
       let isParent=false, myTurn=false, opponentHandCount=0;
       let opponentDiscardHistory=[], myDiscardHistory=[];
       let selectedDiscardIndex=null;
@@ -246,14 +229,10 @@
         opponentArea: document.getElementById('opponentArea'),
         p2pArea: document.getElementById('p2pArea'),
         connectionStatus: document.getElementById('connectionStatus'),
-        qrModal: document.getElementById('qrModal'),
-        qrCanvas: document.getElementById('qrCanvas'),
-        scanVideo: document.getElementById('scanVideo'),
-        sdpManualArea: document.getElementById('sdpManualArea'),
-        ownSDPText: document.getElementById('ownSDPText'),
-        peerSDPText: document.getElementById('peerSDPText'),
-        copyOwnSDPBtn: document.getElementById('copyOwnSDPBtn'),
-        connectWithSDPBtn: document.getElementById('connectWithSDPBtn'),
+        roomSetup: document.getElementById('roomSetup'),
+        roomInfo: document.getElementById('roomInfo'),
+        roomIdDisplay: document.getElementById('roomIdDisplay'),
+        roomIdInput: document.getElementById('roomIdInput'),
       };
 
       function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]; } return a; }
@@ -312,6 +291,7 @@
             setMsg(`🎉 ツモ！ ${y.name} +${y.pts}pt`);
             totalPoints += y.pts; DOM.totalPoints.textContent = totalPoints;
             gameFinished = true; myTurn = false;
+            return;
           } else { setMsg('役がありません。捨てる牌を選んで「捨てる」ボタンを押してください'); }
         } else { setMsg(`${PIECE_TYPES[id].name}を引きました`); }
       }
@@ -335,32 +315,34 @@
         updateBox(); renderHand(); setMsg('8枚配られました。箱をタップして1枚引いてください');
       }
 
-      // ---- P2P通信（QR+SDP手動） ----
-      const RTC_CONFIG = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
-      let offerDesc=null, answerDesc=null;
-
-      function initPeerConnection(){
-        peerConnection = new RTCPeerConnection(RTC_CONFIG);
-        peerConnection.onicecandidate = e => {
-          if(e.candidate) return;
-          if(peerConnection.localDescription?.type==='offer') offerDesc = peerConnection.localDescription;
-          else answerDesc = peerConnection.localDescription;
-          // 手動SDPエリア更新
-          if (DOM.sdpManualArea.style.display !== 'none') {
-            DOM.ownSDPText.value = JSON.stringify(peerConnection.localDescription);
-          }
-        };
-        peerConnection.ondatachannel = e => {
-          dataChannel = e.channel;
-          setupDataChannel();
-        };
+      // ---- PeerJS接続 ----
+      function setupPeerConnection() {
+        if (peer) peer.destroy();
+        peer = new Peer();
+        peer.on('open', (id) => {
+          // 合言葉作成ボタンで使う
+        });
+        peer.on('connection', (incomingConn) => {
+          conn = incomingConn;
+          setupConnectionEvents();
+        });
+        peer.on('error', (err) => {
+          setMsg('接続エラー: ' + err.type, false);
+        });
       }
 
-      function setupDataChannel(){
-        dataChannel.onmessage = e => {
-          const msg = JSON.parse(e.data);
-          if (msg.type === 'draw') {
-            hand = msg.hand; box = msg.box; updateBox(); renderHand();
+      function setupConnectionEvents() {
+        conn.on('open', () => {
+          DOM.connectionStatus.textContent = '接続完了！';
+          DOM.opponentArea.style.display = 'block';
+          // 最初のゲーム状態をやり取り
+          if (isParent) {
+            startP2PGame();
+          }
+        });
+        conn.on('data', (data) => {
+          if (data.type === 'draw') {
+            hand = data.hand; box = data.box; updateBox(); renderHand();
             if (hand.length === 9) {
               const y = checkYaku(hand);
               if (y.pts > 0) {
@@ -368,178 +350,99 @@
                 setMsg(`🎉 ツモ！ ${y.name} +${y.pts}pt`);
                 totalPoints += y.pts; DOM.totalPoints.textContent = totalPoints;
                 gameFinished = true; myTurn = false;
+                return;
               }
             }
             myTurn = true; setMsg('あなたの番です。捨てる牌を選んでください');
-          } else if (msg.type === 'discard') {
-            opponentDiscardHistory = msg.discardHistory;
-            opponentHandCount = msg.hand.length;
+          } else if (data.type === 'discard') {
+            opponentDiscardHistory = data.discardHistory;
+            opponentHandCount = data.hand.length;
             DOM.opponentHandCount.textContent = opponentHandCount;
             renderOpponentDiscard();
             myTurn = true;
             setMsg('あなたの番です。箱から引くか、相手の捨て牌でロンできます');
-          } else if (msg.type === 'win') {
-            setMsg(`相手の${msg.method==='ron'?'ロン':'ツモ'}！ ${msg.yaku.name}`, false);
+          } else if (data.type === 'win') {
+            setMsg(`相手の${data.method==='ron'?'ロン':'ツモ'}！ ${data.yaku.name}`, false);
             gameFinished = true; myTurn = false;
-          } else if (msg.type === 'start') {
-            isParent = msg.isParent;
-            box = msg.box; hand = msg.hand;
+          } else if (data.type === 'start') {
+            isParent = data.isParent;
+            box = data.box; hand = data.hand;
             opponentHandCount = 8;
             myTurn = isParent;
             updateBox(); renderHand();
             DOM.opponentHandCount.textContent = opponentHandCount;
             setMsg(isParent?'あなたが親です。箱をタップして引いてください':'相手が親です。待機してください');
           }
-        };
-      }
-
-      function sendToPeer(data){ if(dataChannel && dataChannel.readyState==='open') dataChannel.send(JSON.stringify(data)); }
-
-      // QRコード表示
-      function showQRCode(data){
-        DOM.qrCanvas.innerHTML='';
-        DOM.scanVideo.style.display='none';
-        DOM.qrCanvas.style.display='flex';
-        new QRCode(DOM.qrCanvas, { text: data, width: 300, height: 300, correctLevel: QRCode.CorrectLevel.H });
-        DOM.qrModal.style.display='flex';
-      }
-
-      async function scanQRCode(){
-        DOM.qrCanvas.style.display='none';
-        DOM.scanVideo.style.display='block';
-        DOM.qrModal.style.display='flex';
-        const video = DOM.scanVideo;
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } });
-        video.srcObject = stream;
-        video.play();
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        const scanLoop = setInterval(()=>{
-          if(video.readyState === video.HAVE_ENOUGH_DATA){
-            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-            ctx.drawImage(video,0,0,canvas.width,canvas.height);
-            const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
-            const code = jsQR(imageData.data, imageData.width, imageData.height);
-            if(code){
-              clearInterval(scanLoop);
-              stream.getTracks().forEach(t=>t.stop());
-              DOM.qrModal.style.display='none';
-              const sdp = JSON.parse(code.data);
-              if(sdp.type==='offer'){
-                createAnswer(sdp);
-                checkAndShowAnswer();
-              } else if(sdp.type==='answer'){
-                peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
-                DOM.connectionStatus.textContent='接続完了！';
-                DOM.opponentArea.style.display='block';
-                if(isParent) startP2PGame();
-              }
-            }
-          }
-        }, 300);
-      }
-
-      function checkAndShowQR(type){
-        const check = setInterval(()=>{
-          if((type==='offer' && offerDesc) || (type==='answer' && answerDesc)){
-            clearInterval(check);
-            const desc = type==='offer' ? offerDesc : answerDesc;
-            showQRCode(JSON.stringify(desc));
-          }
-        }, 500);
-      }
-
-      function checkAndShowAnswer(){
-        const check = setInterval(()=>{
-          if(answerDesc){
-            clearInterval(check);
-            showQRCode(JSON.stringify(answerDesc));
-          }
-        }, 500);
-      }
-
-      // 手動SDP
-      function startManualSDP(){
-        DOM.sdpManualArea.style.display='block';
-        DOM.connectionStatus.textContent='手動SDP交換モード';
-        initPeerConnection();
-        dataChannel = peerConnection.createDataChannel('game');
-        setupDataChannel();
-        peerConnection.createOffer().then(desc => {
-          peerConnection.setLocalDescription(desc);
         });
       }
 
-      // 親側で相手のAnswerを貼り付けて接続
-      DOM.connectWithSDPBtn.addEventListener('click', () => {
-        const peerSDP = DOM.peerSDPText.value.trim();
-        if (!peerSDP) { setMsg('相手のSDPを貼り付けてください', false); return; }
-        try {
-          const desc = JSON.parse(peerSDP);
-          peerConnection.setRemoteDescription(new RTCSessionDescription(desc));
-          DOM.connectionStatus.textContent='接続完了！';
-          DOM.opponentArea.style.display='block';
-          if(isParent) startP2PGame();
-        } catch(e) {
-          setMsg('SDPの形式が正しくありません', false);
-        }
-      });
+      function sendToPeer(data){ if(conn && conn.open) conn.send(data); }
 
-      // 自分のSDPコピー
-      DOM.copyOwnSDPBtn.addEventListener('click', () => {
-        DOM.ownSDPText.select();
-        document.execCommand('copy');
-        setMsg('自分のSDPをコピーしました', true);
-      });
-
-      // 子側：Offerを受け取ったときの処理
-      function handleManualOffer(offerSDP){
-        initPeerConnection();
-        peerConnection.setRemoteDescription(new RTCSessionDescription(offerSDP));
-        peerConnection.createAnswer().then(desc => {
-          peerConnection.setLocalDescription(desc);
-          DOM.sdpManualArea.style.display='block';
-          DOM.ownSDPText.value = JSON.stringify(desc);
-          setMsg('相手に表示されているSDPをコピーして送り返してください', true);
+      function renderOpponentDiscard(){
+        DOM.opponentDiscardHistory.innerHTML='';
+        opponentDiscardHistory.forEach(id=>{
+          const chip=document.createElement('div'); chip.className='discard-chip';
+          const img=document.createElement('img'); img.src=PIECE_TYPES[id].img; img.style.width='100%';
+          chip.addEventListener('click', () => ronWithDiscard(id));
+          chip.appendChild(img);
+          DOM.opponentDiscardHistory.appendChild(chip);
         });
       }
 
-      // QRボタン等のイベント登録
-      document.getElementById('showOfferQRBtn').addEventListener('click', ()=>{
-        isParent=true;
-        initPeerConnection();
-        dataChannel = peerConnection.createDataChannel('game');
-        setupDataChannel();
-        peerConnection.createOffer().then(desc=>{
-          peerConnection.setLocalDescription(desc);
-          checkAndShowQR('offer');
+      function startP2PGame(){
+        myDiscardHistory=[]; opponentDiscardHistory=[];
+        box=createBox(); hand=box.splice(0,8);
+        const oppHand=box.splice(0,8);
+        sendToPeer({type:'start', isParent:false, box, hand: oppHand});
+        myTurn = isParent;
+        updateBox(); renderHand();
+        DOM.opponentHandCount.textContent = 8;
+        setMsg(isParent?'親です。箱をタップして引いてください':'相手の番です');
+      }
+
+      // ---- 合言葉UI ----
+      document.getElementById('createRoomBtn').addEventListener('click', () => {
+        isParent = true;
+        setupPeerConnection();
+        peer.on('open', (id) => {
+          const roomId = id.slice(0, 6); // 短縮ID
+          DOM.roomIdDisplay.textContent = roomId;
+          DOM.roomSetup.style.display = 'none';
+          DOM.roomInfo.style.display = 'block';
+          DOM.connectionStatus.textContent = '相手の接続待ち...';
         });
+        // 相手からの接続は peer.on('connection') で待つ
       });
 
-      document.getElementById('scanOfferQRBtn').addEventListener('click', ()=>{
-        isParent=false;
-        scanQRCode();
+      document.getElementById('joinRoomBtn').addEventListener('click', () => {
+        const roomId = DOM.roomIdInput.value.trim();
+        if (!roomId) return;
+        isParent = false;
+        setupPeerConnection();
+        conn = peer.connect(roomId);
+        setupConnectionEvents();
+        DOM.roomSetup.style.display = 'none';
+        DOM.roomInfo.style.display = 'none';
+        DOM.connectionStatus.textContent = '接続中...';
       });
 
-      document.getElementById('manualSDPBtn').addEventListener('click', ()=>{
-        isParent=true; // 親として扱う
-        startManualSDP();
-      });
-
-      document.getElementById('closeModalBtn').addEventListener('click', ()=>{
-        DOM.qrModal.style.display='none';
+      document.getElementById('copyRoomBtn').addEventListener('click', () => {
+        const text = DOM.roomIdDisplay.textContent;
+        navigator.clipboard.writeText(text).then(() => setMsg('合言葉をコピーしました'));
       });
 
       // モード切替
       document.getElementById('soloModeBtn').addEventListener('click',()=>{
         currentMode='solo'; DOM.p2pArea.style.display='none'; DOM.opponentArea.style.display='none';
+        if (conn) conn.close(); if (peer) peer.destroy();
         newSoloGame();
         document.getElementById('soloModeBtn').classList.add('active');
         document.getElementById('battleModeBtn').classList.remove('active');
       });
       document.getElementById('battleModeBtn').addEventListener('click',()=>{
         currentMode='battle'; DOM.p2pArea.style.display='block'; DOM.opponentArea.style.display='none';
-        setMsg('接続方法を選んでください');
+        DOM.roomSetup.style.display='block'; DOM.roomInfo.style.display='none';
+        DOM.connectionStatus.textContent='未接続';
         document.getElementById('battleModeBtn').classList.add('active');
         document.getElementById('soloModeBtn').classList.remove('active');
       });
@@ -547,7 +450,7 @@
       document.getElementById('boxImage').addEventListener('click', drawFromBox);
       document.getElementById('newGameBtn').addEventListener('click', ()=>{
         if(currentMode==='solo') newSoloGame();
-        else if(peerConnection) startP2PGame();
+        else if (isParent && conn && conn.open) startP2PGame();
       });
       document.getElementById('resetPointsBtn').addEventListener('click',()=>{
         totalPoints=300; DOM.totalPoints.textContent=300;
@@ -559,23 +462,6 @@
       discardBtn.textContent = '🗑️ 選択した牌を捨てる';
       discardBtn.addEventListener('click', confirmDiscard);
       document.getElementById('gameArea').insertBefore(discardBtn, document.getElementById('messageArea'));
-
-      // 相手が手動で貼り付けたSDPを処理するための補助
-      window.handleManualSDP = function(sdpStr) {
-        try {
-          const desc = JSON.parse(sdpStr);
-          if (desc.type === 'offer') {
-            handleManualOffer(desc);
-          } else if (desc.type === 'answer') {
-            peerConnection.setRemoteDescription(new RTCSessionDescription(desc));
-            DOM.connectionStatus.textContent='接続完了！';
-            DOM.opponentArea.style.display='block';
-            if(isParent) startP2PGame();
-          }
-        } catch(e) {
-          setMsg('SDP形式エラー', false);
-        }
-      };
 
       newSoloGame();
       DOM.totalPoints.textContent = totalPoints;
