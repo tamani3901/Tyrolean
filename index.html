@@ -78,7 +78,6 @@
       background: #fffbf2; border: 2px solid #e6c89e; border-radius: 16px;
       padding: 10px; margin: 8px 0; font-size: 0.75rem; max-width: 500px;
     }
-    /* リーチモーダル */
     #reachModal {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.7); display: flex; align-items: center;
@@ -171,7 +170,6 @@
     </div>
   </div>
 
-  <!-- リーチモーダル -->
   <div id="reachModal" style="display:none;">
     <div id="reachModalContent"></div>
   </div>
@@ -208,12 +206,13 @@
         { id:11,name:'ヘーゼルナッツ', color:'brown', count:6, file:'hazelnut.png' }
       ].map(t => ({ ...t, img: IMAGE_BASE_URL + t.file }));
 
+      // 役一覧（区切りはバラエティ以外3つずつ）
       const YAKU_LIST = [
         { name:'オールワン', pts:300, check:c=>c.some(v=>v===9) },
         { name:'タブルセット', pts:150, check:c=>c.some(v=>v>=6) },
-        { name:'ワンカラーセット', pts:90, check:(c,hand)=>hand.every(id=>PIECE_TYPES[id].color===PIECE_TYPES[hand[0]].color) },
         { name:'ミルクセット', pts:120, check:c=>c[2]===3&&c[9]===3&&c[6]===3&&c.reduce((a,b)=>a+b,0)===9 },
         { name:'おもちセット', pts:120, check:c=>c[7]===3&&c[8]===3&&c[9]===3&&c.reduce((a,b)=>a+b,0)===9 },
+        { name:'ワンカラーセット', pts:90, check:(c,hand)=>hand.every(id=>PIECE_TYPES[id].color===PIECE_TYPES[hand[0]].color) },
         { name:'ドリンクセット', pts:90, check:c=>c[2]===3&&c[3]===3&&c[4]===3&&c.reduce((a,b)=>a+b,0)===9 },
         { name:'サクサクおやつセット', pts:90, check:c=>c[10]===3&&c[1]===3&&c[11]===3&&c.reduce((a,b)=>a+b,0)===9 },
         { name:'キャラセット', pts:75, check:c=>{
@@ -228,7 +227,8 @@
           return c.every((v,i)=>(i===2||i===aHit[0]||i===bHit[0])?v===3:v===0);
         }},
         { name:'バラエティ', pts:30, check:c=>{
-          const non=[1,3,4,5,6,7,8,9,11]; return non.every(i=>c[i]===1) && c[0]===0&&c[2]===0&&c[10]===0;
+          const non=[1,3,4,5,6,7,8,9,11]; // 9種類
+          return non.every(i=>c[i]===1) && c[0]===0&&c[2]===0&&c[10]===0;
         }}
       ];
 
@@ -238,8 +238,8 @@
       let isParent=false, myTurn=false, opponentHandCount=0;
       let opponentDiscardHistory=[], myDiscardHistory=[];
       let selectedDiscardIndex=null;
-      let inReach = false;           // リーチ中フラグ
-      let reachNeedPieceIds = [];    // リーチに必要な牌ID（複数可）
+      let inReach = false;
+      let reachNeedPieceIds = [];
       let reachYakuName = '';
 
       const DOM = {
@@ -264,19 +264,17 @@
         const c=getCounts(h);
         for(let y of YAKU_LIST) if(y.check(c,h)) return {name:y.name, pts:y.pts};
         let triple=0; for(let i=0;i<c.length;i++) triple+=Math.floor(c[i]/3);
-        return {name:`なんでも3種 ×${Math.min(3,triple)}`, pts:Math.min(3,triple)*15};
+        const cnt = Math.min(3, triple);
+        return {name:`なんでも3種 ×${cnt}`, pts: cnt * 15};
       }
 
-      // リーチ可能な役と必要な牌を返す
       function getReachOptions(currentHand) {
         if (currentHand.length !== 8) return [];
         const options = [];
-        // 残りの牌候補（全種類）
         for (let pieceId = 0; pieceId < 12; pieceId++) {
           const testHand = [...currentHand, pieceId];
           const yaku = checkYaku(testHand);
-          if (yaku.pts > 0 && yaku.name !== 'なんでも3種 ×1') {
-            // 既に同じ役が必要牌違いで追加されていないかチェック
+          if (yaku.pts > 0 && yaku.name.startsWith('なんでも3種') === false) {
             if (!options.some(o => o.yakuName === yaku.name && o.needPieceId === pieceId)) {
               options.push({ yakuName: yaku.name, pts: yaku.pts, needPieceId: pieceId });
             }
@@ -320,7 +318,6 @@
       function updateBox(){ DOM.boxRemaining.textContent=box.length; }
       function setMsg(t,good=true){ DOM.messageArea.textContent=t; DOM.messageArea.style.color=good?'#b45f2a':'#a33'; }
 
-      // リーチ選択モーダル
       function showReachOptions(options) {
         DOM.reachModalContent.innerHTML = '<h3>リーチしますか？</h3><p>可能な役:</p>';
         options.forEach(opt => {
@@ -328,14 +325,12 @@
           div.className = 'reach-yaku-item';
           div.innerHTML = `${opt.yakuName} <span class="reach-badge">${opt.pts}pt</span><br><small>必要: ${PIECE_TYPES[opt.needPieceId].name}</small>`;
           div.addEventListener('click', () => {
-            // リーチ確定
             inReach = true;
             reachNeedPieceIds = [opt.needPieceId];
             reachYakuName = opt.yakuName;
             DOM.reachModal.style.display = 'none';
             DOM.reachBadge.style.display = 'block';
             setMsg(`リーチ: ${opt.yakuName} 必要牌: ${PIECE_TYPES[opt.needPieceId].name}`);
-            // リーチ情報を相手に送信（任意）
           });
           DOM.reachModalContent.appendChild(div);
         });
@@ -361,7 +356,6 @@
           // リーチ中は必要牌チェック
           if (inReach) {
             if (reachNeedPieceIds.includes(id)) {
-              // ツモ！
               const yaku = checkYaku(hand);
               if (yaku.pts > 0) {
                 sendToPeer({type:'win', yaku:yaku, method:'tsumo'});
@@ -371,23 +365,25 @@
                 return;
               }
             }
-            // リーチ中に不要牌 → 即捨て
-            hand.pop();
-            myDiscardHistory.push(id);
-            sendToPeer({type:'discard', pieceId:id, hand:hand, discardHistory:myDiscardHistory});
-            renderHand(); myTurn = false;
-            setMsg(`リーチ中。${PIECE_TYPES[id].name}を引いたが不要なので捨てました。相手の番です`);
+            // リーチ中に不要牌 → 表示してから即捨て
+            const discardId = hand.pop();
+            setMsg(`${PIECE_TYPES[discardId].name}を引いたが不要なので捨てます`, true);
+            setTimeout(() => {
+              myDiscardHistory.push(discardId);
+              sendToPeer({type:'discard', pieceId:discardId, hand:hand, discardHistory:myDiscardHistory});
+              renderHand(); myTurn = false;
+              setMsg(`相手の番です`, true);
+            }, 800);
             return;
           }
 
           // 通常時：即ツモまたは選択
           const y = checkYaku(hand);
-          if (y.pts > 0 && y.name !== 'なんでも3種 ×1') {
+          if (y.pts > 0 && !y.name.startsWith('なんでも3種')) {
             sendToPeer({type:'win', yaku:y, method:'tsumo'});
             setMsg(`🎉 ツモ！ ${y.name} +${y.pts}pt`);
             totalPoints += y.pts; DOM.totalPoints.textContent = totalPoints;
             gameFinished = true; myTurn = false;
-            return;
           } else {
             setMsg('役がありません。捨てる牌を選んで「捨てる」ボタンを押してください');
           }
@@ -400,8 +396,7 @@
         if (!myTurn || hand.length !== 8) return;
         const testHand = [...hand, discardId];
         const yaku = checkYaku(testHand);
-        if (yaku.pts > 0 && yaku.name !== 'なんでも3種 ×1') {
-          // リーチ中なら必要牌チェック
+        if (yaku.pts > 0 && !yaku.name.startsWith('なんでも3種')) {
           if (inReach && !reachNeedPieceIds.includes(discardId)) {
             setMsg('リーチ中の必要牌ではありません', false);
             return;
@@ -447,7 +442,7 @@
             hand = data.hand; box = data.box; updateBox(); renderHand();
             if (hand.length === 9) {
               const y = checkYaku(hand);
-              if (y.pts > 0 && y.name !== 'なんでも3種 ×1') {
+              if (y.pts > 0 && !y.name.startsWith('なんでも3種')) {
                 sendToPeer({type:'win', yaku:y, method:'tsumo'});
                 setMsg(`🎉 ツモ！ ${y.name} +${y.pts}pt`);
                 totalPoints += y.pts; DOM.totalPoints.textContent = totalPoints;
@@ -456,30 +451,20 @@
               }
             }
             myTurn = true;
-            // リーチ選択可能かチェック
             if (!inReach && hand.length === 8) {
               const options = getReachOptions(hand);
-              if (options.length > 0) {
-                showReachOptions(options);
-              } else {
-                setMsg('あなたの番です。捨てる牌を選んでください');
-              }
-            } else {
-              setMsg('あなたの番です。捨てる牌を選んでください');
+              if (options.length > 0) { showReachOptions(options); return; }
             }
+            setMsg('あなたの番です。捨てる牌を選んでください');
           } else if (data.type === 'discard') {
             opponentDiscardHistory = data.discardHistory;
             opponentHandCount = data.hand.length;
             DOM.opponentHandCount.textContent = opponentHandCount;
             renderOpponentDiscard();
             myTurn = true;
-            // 自分の手札が8枚ならリーチチェック
             if (!inReach && hand.length === 8) {
               const options = getReachOptions(hand);
-              if (options.length > 0) {
-                showReachOptions(options);
-                return;
-              }
+              if (options.length > 0) { showReachOptions(options); return; }
             }
             setMsg('あなたの番です。箱から引くか、相手の捨て牌でロンできます');
           } else if (data.type === 'win') {
@@ -492,19 +477,11 @@
             myTurn = isParent;
             updateBox(); renderHand();
             DOM.opponentHandCount.textContent = opponentHandCount;
-            if (isParent) {
-              // 親の初回リーチチェック
-              if (!inReach && hand.length === 8) {
-                const options = getReachOptions(hand);
-                if (options.length > 0) {
-                  showReachOptions(options);
-                  return;
-                }
-              }
-              setMsg('あなたが親です。箱をタップして引いてください');
-            } else {
-              setMsg('相手が親です。待機してください');
+            if (isParent && hand.length === 8) {
+              const options = getReachOptions(hand);
+              if (options.length > 0) { showReachOptions(options); return; }
             }
+            setMsg(isParent?'あなたが親です。箱をタップして引いてください':'相手が親です。待機してください');
           }
         });
       }
@@ -527,7 +504,7 @@
         box=createBox(); hand=box.splice(0,8);
         const oppHand=box.splice(0,8);
         sendToPeer({type:'start', isParent:false, box, hand: oppHand});
-        myTurn = isParent; inReach = false;
+        myTurn = isParent; inReach = false; DOM.reachBadge.style.display='none';
         updateBox(); renderHand();
         DOM.opponentHandCount.textContent = 8;
         setMsg(isParent?'親です。箱をタップして引いてください':'相手の番です');
@@ -551,7 +528,6 @@
         });
       });
 
-      // モード切替
       document.getElementById('soloModeBtn').addEventListener('click',()=>{
         currentMode='solo'; DOM.p2pArea.style.display='none'; DOM.opponentArea.style.display='none';
         if (conn) conn.close(); if (peer) peer.destroy();
