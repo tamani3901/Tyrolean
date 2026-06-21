@@ -101,8 +101,6 @@
       background: #e05a2a; color: white; padding: 4px 14px; border-radius: 20px;
       font-weight: bold; z-index: 50; font-size: 0.9rem;
     }
-
-    /* 4人対戦用の対戦相手エリア */
     .opponents-row {
       display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 6px 0;
     }
@@ -110,8 +108,6 @@
       background: #fef9f0; border-radius: 16px; padding: 8px; border: 2px solid #e6c89e;
       min-width: 150px; flex: 1; max-width: 220px; font-size: 0.8rem;
     }
-
-    /* PC用ワイド */
     @media (min-width: 768px) {
       .container { max-width: 900px; }
       .piece-slot { width: 72px; height: 72px; }
@@ -137,6 +133,17 @@
       <button class="mode-btn" id="battleModeBtn">⚔️ オンライン対戦</button>
     </div>
 
+    <div class="rules-box">
+      <details>
+        <summary>📖 ルール</summary>
+        ・8枚スタート→引いて9枚→不要牌を捨てる<br>
+        ・3枚セット×3組（計9枚）でアガリ<br>
+        ・相手の最後の捨て牌でロン可能<br>
+        ・リーチあり（捨てた後に選択可能）<br>
+        ・ロン：放銃者のみ支払い、ツモ：他全員で分割（端数は次番が多く負担）
+      </details>
+    </div>
+
     <div id="p2pArea" style="display:none; width:100%; max-width:500px; text-align:center;">
       <div class="room-area">
         <p><strong>対戦を始める（2〜4人）</strong></p>
@@ -151,10 +158,8 @@
       <div id="connectionStatus" style="margin-top:8px;">未接続</div>
     </div>
 
-    <!-- 対戦相手一覧 -->
     <div class="opponents-row" id="opponentsContainer"></div>
 
-    <!-- 自分の捨て牌エリア -->
     <div class="discard-area">
       <div>🗑️ あなたの捨て牌:</div>
       <div class="discard-history" id="myDiscardHistory"></div>
@@ -237,12 +242,10 @@
         }}
       ];
 
-      // ---------- ゲーム状態 ----------
       let box=[], players=[], currentPlayerIndex=0, totalPoints=300, gameFinished=false;
-      let currentMode='cpu'; // 'cpu' or 'online'
-      let myPlayerId = 0; // 自分のインデックス
+      let currentMode='cpu';
+      let myPlayerId=0;
       let peer=null, connections={}, roomId=null, isHost=false;
-      let cpuHand=[], cpuDiscard=[], cpuReach=false;
       let selectedDiscardIndex=null;
       let inReach=false, reachNeedPieceIds=[], reachYakuName='';
 
@@ -320,8 +323,12 @@
         players[myPlayerId].discard.push(piece);
         renderHand(); renderMyDiscard(); selectedDiscardIndex=null;
         setMsg(`${PIECE_TYPES[piece].name}を捨てました`);
-        if(currentMode==='cpu'){ broadcastDiscard(piece); nextTurn(); }
-        else { sendToHost({type:'discard', pieceId:piece, hand, discard:players[myPlayerId].discard}); }
+        if(currentMode==='cpu'){
+          broadcastDiscard(piece);
+          nextTurn();
+        } else {
+          sendToHost({type:'discard', pieceId:piece, hand, discard:players[myPlayerId].discard});
+        }
         if(!inReach && getMyHand().length===8){
           const options=getReachOptions(getMyHand());
           if(options.length>0) showReachOptions(options);
@@ -349,7 +356,11 @@
           p.discard.forEach((id, i)=>{
             const chip=document.createElement('div'); chip.className='discard-chip';
             const img=document.createElement('img'); img.src=PIECE_TYPES[id].img; img.style.width='100%';
-            if(i===p.discard.length-1){ chip.classList.add('latest'); chip.addEventListener('click',()=>ronWithDiscard(id)); }
+            if(i===p.discard.length-1){
+              chip.classList.add('latest');
+              const fromIdx = idx;
+              chip.addEventListener('click', ()=>ronWithDiscard(id, fromIdx));
+            }
             chip.appendChild(img);
             discDiv.appendChild(chip);
           });
@@ -360,7 +371,6 @@
 
       function updateBox(){ DOM.boxRemaining.textContent=box.length; }
       function setMsg(t,good=true){ DOM.messageArea.textContent=t; DOM.messageArea.style.color=good?'#b45f2a':'#a33'; }
-
       function isMyTurn(){ return players.length>0 && currentPlayerIndex===myPlayerId && !gameFinished; }
 
       function showReachOptions(options){
@@ -414,31 +424,58 @@
         } else { setMsg(`${PIECE_TYPES[id].name}を引きました`); }
       }
 
-      function ronWithDiscard(discardId){
+      function ronWithDiscard(discardId, fromIndex){
         if(!isMyTurn() || getMyHand().length!==8) return;
         const testHand=[...getMyHand(), discardId];
         const yaku=checkYaku(testHand);
         if(yaku){
           if(inReach && !reachNeedPieceIds.includes(discardId)){ setMsg('リーチ中の必要牌ではありません', false); return; }
           getMyHand().push(discardId);
-          winGame(yaku,'ron');
+          winGame(yaku,'ron', fromIndex);
         } else { setMsg('その牌ではアガれません', false); }
       }
 
-      function winGame(yaku, method){
-        gameFinished=true; inReach=false; DOM.reachBadge.style.display='none';
-        totalPoints += yaku.pts; DOM.totalPoints.textContent=totalPoints;
-        players[myPlayerId].points = totalPoints;
-        // 相手のポイントを減らす
-        players.forEach((p,idx)=>{
-          if(idx===myPlayerId) return;
-          p.points -= yaku.pts;
-          if(p.points < 0) p.points = 0;
-        });
-        if(currentMode==='cpu') cpuHand=[];
+      function applyPoints(winnerIndex, yakuPts, method, fromIndex = null) {
+        const winner = players[winnerIndex];
+        winner.points += yakuPts;
+        if (method === 'ron' && fromIndex !== null) {
+          players[fromIndex].points -= yakuPts;
+        } else if (method === 'tsumo') {
+          const others = players.filter((_, idx) => idx !== winnerIndex);
+          const n = others.length;
+          if (n === 0) return;
+          // 5点単位で分割。base = floor(yakuPts / n / 5)*5
+          const base = Math.floor(yakuPts / n / 5) * 5;
+          let remainder = yakuPts - base * n;
+          let startIdx = (winnerIndex + 1) % players.length;
+          for (let i = 0; i < n; i++) {
+            const idx = (startIdx + i) % players.length;
+            if (idx === winnerIndex) continue;
+            let pay = base + (remainder > 0 ? 5 : 0);
+            if (remainder > 0) remainder -= 5;
+            players[idx].points -= pay;
+          }
+        }
+        // 自分の点数表示更新
+        totalPoints = players[myPlayerId].points;
+        DOM.totalPoints.textContent = totalPoints;
+      }
+
+      function winGame(yaku, method, fromIndex = null) {
+        gameFinished = true; inReach = false; DOM.reachBadge.style.display = 'none';
+        applyPoints(myPlayerId, yaku.pts, method, fromIndex);
         renderOpponents();
         showResult(true, yaku);
-        if(currentMode==='online') sendToHost({type:'win', yaku:yaku, method:method, points:totalPoints});
+        if (currentMode === 'online') {
+          sendToHost({type:'win', yaku:yaku, method:method, from:fromIndex});
+        }
+      }
+
+      function cpuWin(yaku, method) {
+        gameFinished = true;
+        applyPoints(1, yaku.pts, method, (method==='ron' ? myPlayerId : null));
+        renderOpponents();
+        showResult(false, yaku);
       }
 
       function showResult(winner, yaku){
@@ -448,7 +485,6 @@
         document.getElementById('resultOkBtn').addEventListener('click', ()=>{
           DOM.resultModal.style.display='none';
           if(currentMode==='cpu') newCpuGame();
-          else { /* オンラインではホストが新ラウンドを開始 */ }
         });
       }
 
@@ -460,7 +496,7 @@
           {name:'CPU', hand:box.splice(0,8), discard:[], points:300}
         ];
         myPlayerId=0; currentPlayerIndex=Math.floor(Math.random()*2);
-        gameFinished=false; inReach=false; cpuReach=false;
+        gameFinished=false; inReach=false;
         DOM.reachBadge.style.display='none';
         updateBox(); renderHand(); renderMyDiscard(); renderOpponents();
         if(currentPlayerIndex===0) setMsg('あなたの番です');
@@ -470,40 +506,28 @@
       function cpuTurn(){
         if(gameFinished || currentPlayerIndex!==1) return;
         if(box.length===0) return;
-        const id=box.pop(); cpuHand.push(id); updateBox();
-        if(cpuHand.length===9){
-          const yaku=checkYaku(cpuHand);
+        const id=box.pop(); players[1].hand.push(id); updateBox();
+        if(players[1].hand.length===9){
+          const yaku=checkYaku(players[1].hand);
           if(yaku){
-            gameFinished=true;
-            totalPoints -= yaku.pts; DOM.totalPoints.textContent=totalPoints;
-            players[0].points = totalPoints;
-            players[1].points += yaku.pts;
-            renderOpponents();
-            showResult(false, yaku);
+            cpuWin(yaku, 'tsumo');
             return;
           }
-          // 不要牌を捨てる（最も少ない種類をランダムで）
-          const counts=getCounts(cpuHand);
+          const counts=getCounts(players[1].hand);
           let min=10, candidates=[];
           counts.forEach((c,i)=>{ if(c>0 && c<min){ min=c; candidates=[i]; } else if(c===min) candidates.push(i); });
           const discardId = candidates[Math.floor(Math.random()*candidates.length)];
-          const idx = cpuHand.findIndex(id=>id===discardId);
-          cpuHand.splice(idx,1);
+          const idx = players[1].hand.findIndex(id=>id===discardId);
+          players[1].hand.splice(idx,1);
           players[1].discard.push(discardId);
           setMsg(`CPUが${PIECE_TYPES[discardId].name}を捨てました`);
-          broadcastDiscard(discardId);
           renderOpponents();
         }
         nextTurn();
       }
 
-      function broadcastDraw(pieceId){
-        // CPU対戦では自分への通知のみ（既に表示済み）
-      }
-      function broadcastDiscard(pieceId){
-        // CPUが捨てた牌を表示（renderOpponentsで更新）
-        renderOpponents();
-      }
+      function broadcastDraw(pieceId){}
+      function broadcastDiscard(pieceId){ renderOpponents(); }
       function nextTurn(){
         if(gameFinished) return;
         currentPlayerIndex = (currentPlayerIndex+1) % players.length;
@@ -520,7 +544,7 @@
         }
       }
 
-      // ---- オンライン対戦（ホスト管理） ----
+      // ---- オンライン対戦 ----
       function setupHost(roomCode){
         isHost=true; roomId=roomCode;
         peer = new Peer(roomCode);
@@ -558,7 +582,8 @@
         box=createBox();
         players=[{name:'ホスト', hand:box.splice(0,8), discard:[], points:totalPoints}];
         Object.values(connections).forEach((conn,idx)=>{
-          conn.send({type:'start', playerId:idx+1, hand:box.splice(0,8), box:[...box], players:players.map(p=>({name:p.name, points:p.points}))});
+          const hand = box.splice(0,8);
+          conn.send({type:'start', playerId:idx+1, hand, box:[...box], players:players.map(p=>({name:p.name, points:p.points}))});
           players.push({name:`プレイヤー${idx+1}`, hand:[], discard:[], points:300});
         });
         myPlayerId=0; currentPlayerIndex=0; gameFinished=false;
@@ -571,14 +596,13 @@
         if(data.type==='discard'){
           players[playerId].hand = data.hand;
           players[playerId].discard = data.discard;
-          broadcastToOthers(playerId, {type:'opponentDiscard', playerId:playerId, discard:data.discard, handCount:data.hand.length});
+          broadcastToOthers(playerId, {type:'opponentDiscard', playerId, discard:data.discard, handCount:data.hand.length});
           nextTurnOnline();
         } else if(data.type==='win'){
-          const yaku=data.yaku;
-          players[playerId].points += yaku.pts;
-          // 他のプレイヤーから減点
-          players.forEach((p,idx)=>{ if(idx!==playerId) p.points -= yaku.pts; });
-          broadcastToAll({type:'gameOver', winner:playerId, yaku:yaku});
+          const {yaku, method, from} = data;
+          applyPoints(playerId, yaku.pts, method, from);
+          if(playerId===myPlayerId) showResult(true, yaku);
+          else showResult(false, yaku);
           gameFinished=true;
         }
       }
@@ -586,26 +610,23 @@
       function handleGuestMessage(data){
         if(data.type==='start'){
           myPlayerId=data.playerId;
-          box=data.box; hand=data.hand;
-          players=data.players;
-          players[myPlayerId] = {name:'あなた', hand:data.hand, discard:[], points:300};
+          box=data.box;
+          players = data.players.map((p,idx)=>({
+            name: idx===myPlayerId ? 'あなた' : p.name,
+            hand: idx===myPlayerId ? data.hand : [],
+            discard:[],
+            points: p.points
+          }));
           currentPlayerIndex=0; gameFinished=false;
           updateBox(); renderHand(); renderMyDiscard(); renderOpponents();
           setMsg('ゲーム開始！');
         } else if(data.type==='opponentDiscard'){
-          const p=players[data.playerId];
-          if(p){ p.discard=data.discard; p.hand=Array(data.handCount).fill(0); }
+          const p = players[data.playerId];
+          if(p){ p.discard = data.discard; p.hand = Array(data.handCount).fill(0); }
           renderOpponents();
           if(currentPlayerIndex===myPlayerId) setMsg('あなたの番です');
-        } else if(data.type==='gameOver'){
-          const yaku=data.yaku;
-          if(data.winner===myPlayerId){
-            totalPoints += yaku.pts; players[myPlayerId].points=totalPoints;
-            showResult(true, yaku);
-          } else {
-            totalPoints -= yaku.pts; players[myPlayerId].points=totalPoints;
-            showResult(false, yaku);
-          }
+        } else if(data.type==='win'){
+          // 勝敗処理はホストから来る
         }
       }
 
@@ -613,12 +634,6 @@
       function broadcastToOthers(senderId, data){
         Object.entries(connections).forEach(([id,conn])=>{ if(parseInt(id)!==senderId) conn.send(data); });
       }
-      function broadcastToAll(data){
-        Object.values(connections).forEach(conn=>conn.send(data));
-        // 自分自身にも適用
-        if(data.type==='gameOver'){ /* 自分の処理は別途 */ }
-      }
-
       function nextTurnOnline(){
         currentPlayerIndex = (currentPlayerIndex+1) % players.length;
         if(currentPlayerIndex===myPlayerId){
@@ -631,7 +646,6 @@
           setMsg('相手の番です');
         }
       }
-
       function updateRoomPlayers(){
         const count = Object.keys(connections).length+1;
         DOM.roomPlayers.textContent = `参加者: ${count}人`;
@@ -665,6 +679,7 @@
       });
       document.getElementById('resetPointsBtn').addEventListener('click',()=>{
         totalPoints=300; DOM.totalPoints.textContent=300;
+        if(players[myPlayerId]) players[myPlayerId].points=300;
       });
 
       const discardBtn = document.createElement('button');
