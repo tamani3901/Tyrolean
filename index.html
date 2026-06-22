@@ -74,19 +74,19 @@
       padding: 12px; margin: 10px 0; width: 100%; max-width: 500px; text-align: center;
     }
     .room-input {
-      padding: 8px 12px; font-size: 1.5rem; width: 180px; text-align: center;
+      padding: 8px 12px; font-size: 1.2rem; width: 180px; text-align: center;
       border-radius: 12px; border: 2px solid #d49b3b;
     }
     .rules-box {
       background: #fffbf2; border: 2px solid #e6c89e; border-radius: 16px;
       padding: 10px; margin: 8px 0; font-size: 0.75rem; max-width: 500px;
     }
-    #reachModal, #resultModal {
+    #reachModal, #resultModal, #passModal {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.7); display: flex; align-items: center;
       justify-content: center; z-index: 150; flex-direction: column;
     }
-    #reachModalContent, #resultModalContent {
+    #reachModalContent, #resultModalContent, #passModalContent {
       background: #fffbf2; border-radius: 20px; padding: 16px; max-width: 360px; width: 90%;
       text-align: center;
     }
@@ -134,8 +134,9 @@
     <h1>🍫チロルジャン 2009</h1>
     <div class="mode-bar">
       <button class="mode-btn active" id="cpuModeBtn">🧑‍💻 CPU対戦</button>
-      <button class="mode-btn" id="onlineModeBtn">💬 合言葉対戦</button>
+      <button class="mode-btn" id="onlineModeBtn">💬 合言葉</button>
       <button class="mode-btn" id="qrModeBtn">📷 QR対戦</button>
+      <button class="mode-btn" id="passModeBtn">👥 対面パス</button>
     </div>
 
     <div class="rules-box">
@@ -179,6 +180,25 @@
       </div>
     </div>
 
+    <!-- 対面パス用 -->
+    <div id="passArea" style="display:none; width:100%; max-width:500px; text-align:center;">
+      <div class="room-area">
+        <p><strong>1台で交代対戦</strong></p>
+        <div style="margin:6px 0;">
+          人数: <select id="passPlayerCount" style="padding:6px; border-radius:12px; border:2px solid #d49b3b;">
+            <option value="2">2人</option>
+            <option value="3">3人</option>
+            <option value="4">4人</option>
+          </select>
+        </div>
+        <div id="passNameInputs">
+          <input class="room-input" type="text" placeholder="プレイヤー1の名前" id="passName1" style="margin:3px;"><br>
+          <input class="room-input" type="text" placeholder="プレイヤー2の名前" id="passName2" style="margin:3px;">
+        </div>
+        <button class="btn" id="startPassGameBtn">▶️ ゲーム開始</button>
+      </div>
+    </div>
+
     <div class="opponent-area" id="opponentArea" style="display:none;">
       <div>🤝 相手の手札: <span id="opponentHandCount">0</span>枚</div>
       <div>捨て牌（赤枠の最後の1枚だけロン可能）:</div>
@@ -194,14 +214,17 @@
       </div>
       <div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap;">
         <button class="btn" id="resetPointsBtn">💰 ポイントリセット</button>
+        <button class="btn" id="passNextBtn" style="display:none;">👉 次の人へ渡す</button>
       </div>
       <div class="message" id="messageArea"></div>
       <div>持ち点: <span id="totalPoints">300</span>pt</div>
+      <div id="currentPlayerDisplay" style="font-weight:bold; margin-top:4px;"></div>
     </div>
   </div>
 
   <div id="reachModal" style="display:none;"><div id="reachModalContent"></div></div>
   <div id="resultModal" style="display:none;"><div id="resultModalContent"></div></div>
+  <div id="passModal" style="display:none;"><div id="passModalContent"></div></div>
   <div id="qrModal" style="display:none;">
     <div id="qrCodeContainer"></div>
     <p style="color:white; margin-top:8px;">このIDを相手に伝えてください</p>
@@ -288,6 +311,10 @@
         reachModalContent: document.getElementById('reachModalContent'),
         resultModal: document.getElementById('resultModal'),
         resultModalContent: document.getElementById('resultModalContent'),
+        passModal: document.getElementById('passModal'),
+        passModalContent: document.getElementById('passModalContent'),
+        passNextBtn: document.getElementById('passNextBtn'),
+        currentPlayerDisplay: document.getElementById('currentPlayerDisplay'),
         connectionStatus: document.getElementById('connectionStatus'),
         startOnlineGameBtn: document.getElementById('startOnlineGameBtn'),
         startCpuGameBtn: document.getElementById('startCpuGameBtn'),
@@ -299,6 +326,8 @@
         qrPeerIdInput: document.getElementById('qrPeerIdInput'),
         onlineArea: document.getElementById('onlineArea'),
         qrArea: document.getElementById('qrArea'),
+        passArea: document.getElementById('passArea'),
+        passPlayerCount: document.getElementById('passPlayerCount'),
       };
 
       function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]; } return a; }
@@ -346,9 +375,20 @@
         players[myPlayerId].discard.push(piece);
         renderHand(); renderMyDiscard(); selectedDiscardIndex=null;
         setMsg(`${PIECE_TYPES[piece].name}を捨てました`);
-        if(currentMode==='cpu'){ nextCpuTurn(); }
-        else { sendToOpponent({type:'discard', pieceId:piece, hand:getMyHand(), discard:players[myPlayerId].discard}); myTurn=false; updateTurnDisplay(); }
-        if(!inReach && getMyHand().length===8){ const opts=getReachOptions(getMyHand()); if(opts.length>0) showReachOptions(opts); }
+        if(currentMode==='pass'){
+          // 対面パスモードでは捨てた後にリーチ確認
+          if(!inReach && getMyHand().length===8){
+            const opts=getReachOptions(getMyHand());
+            if(opts.length>0) showReachOptions(opts);
+          }
+          renderOpponents();
+        } else if(currentMode==='cpu'){
+          nextCpuTurn();
+        } else {
+          sendToOpponent({type:'discard', pieceId:piece, hand:getMyHand(), discard:players[myPlayerId].discard});
+          myTurn=false; updateTurnDisplay();
+          if(!inReach && getMyHand().length===8){ const opts=getReachOptions(getMyHand()); if(opts.length>0) showReachOptions(opts); }
+        }
       }
 
       function renderMyDiscard(){
@@ -362,16 +402,22 @@
         });
       }
 
-      function renderOpponent(){
-        if(!players[0] || !players[1]) return;
-        const opp = players[1-myPlayerId];
-        DOM.opponentHandCount.textContent = opp.hand.length;
+      function renderOpponents(){
         DOM.opponentDiscardHistory.innerHTML='';
-        opp.discard.forEach((id, i)=>{
-          const chip=document.createElement('div'); chip.className='discard-chip';
-          const img=document.createElement('img'); img.src=PIECE_TYPES[id].img; img.style.width='100%';
-          if(i===opp.discard.length-1){ chip.classList.add('latest'); chip.addEventListener('click', ()=>ronRequest(id)); }
-          chip.appendChild(img); DOM.opponentDiscardHistory.appendChild(chip);
+        DOM.opponentArea.style.display='block';
+        players.forEach((p, idx) => {
+          if(idx === myPlayerId) return;
+          DOM.opponentHandCount.textContent = p.hand.length;
+          p.discard.forEach((id, i) => {
+            const chip = document.createElement('div'); chip.className = 'discard-chip';
+            const img = document.createElement('img'); img.src = PIECE_TYPES[id].img; img.style.width = '100%';
+            if(i === p.discard.length - 1) {
+              chip.classList.add('latest');
+              chip.addEventListener('click', () => ronRequest(id, idx));
+            }
+            chip.appendChild(img);
+            DOM.opponentDiscardHistory.appendChild(chip);
+          });
         });
       }
 
@@ -384,7 +430,13 @@
       function drawRequest(){
         if(!isMyTurn() || getMyHand().length!==8 || box.length===0) return;
         const id=box.pop(); getMyHand().push(id); updateBox(); renderHand();
-        if(currentMode==='cpu'){
+        if(currentMode==='pass'){
+          if(getMyHand().length===9){
+            const yaku=checkYaku(getMyHand());
+            if(yaku){ winGame(yaku,'tsumo'); return; }
+            else setMsg('役がありません。捨てる牌を選んでください');
+          }
+        } else if(currentMode==='cpu'){
           if(getMyHand().length===9){ const yaku=checkYaku(getMyHand()); if(yaku){ winGame(yaku,'tsumo'); return; } else setMsg('役がありません。捨てる牌を選んでください'); }
         } else {
           sendToOpponent({type:'draw', pieceId:id, boxRemaining:box.length});
@@ -392,15 +444,74 @@
         }
       }
 
-      function ronRequest(discardId){
+      function ronRequest(discardId, fromIndex){
         if(!isMyTurn() || getMyHand().length!==8) return;
         const testHand=[...getMyHand(), discardId]; const yaku=checkYaku(testHand);
         if(yaku){
           if(inReach && !reachNeedPieceIds.includes(discardId)){ setMsg('リーチ中の必要牌ではありません', false); return; }
           getMyHand().push(discardId);
-          if(currentMode==='cpu'){ winGame(yaku,'ron'); }
-          else { winGame(yaku,'ron'); sendToOpponent({type:'win', yaku:yaku, method:'ron', discardId}); }
+          if(currentMode==='pass' || currentMode==='cpu'){ winGame(yaku,'ron', fromIndex); }
+          else { winGame(yaku,'ron', fromIndex); sendToOpponent({type:'win', yaku:yaku, method:'ron', discardId}); }
         } else setMsg('その牌ではアガれません', false);
+      }
+
+      // ---- 対面パスモード ----
+      function startPassGame(){
+        const count = parseInt(DOM.passPlayerCount.value);
+        const names = [];
+        for(let i=1; i<=count; i++){
+          const nameInput = document.getElementById(`passName${i}`);
+          names.push(nameInput ? nameInput.value.trim() || `プレイヤー${i}` : `プレイヤー${i}`);
+        }
+        box=createBox();
+        players = names.map((name, i) => ({
+          name: name,
+          hand: box.splice(0, 8),
+          discard: [],
+          points: 300
+        }));
+        myPlayerId = 0;
+        currentPlayerIndex = 0;
+        gameFinished = false;
+        inReach = false;
+        myTurn = true;
+        currentMode = 'pass';
+        DOM.opponentArea.style.display = 'block';
+        DOM.passNextBtn.style.display = 'inline-block';
+        DOM.reachBadge.style.display = 'none';
+        DOM.currentPlayerDisplay.textContent = `現在: ${players[0].name} の番`;
+        updateBox(); renderHand(); renderMyDiscard(); renderOpponents();
+        setMsg(`${players[0].name} の番です`);
+      }
+
+      function passToNext(){
+        if(currentMode !== 'pass' || gameFinished) return;
+        const currentName = players[currentPlayerIndex].name;
+        const nextIndex = (currentPlayerIndex + 1) % players.length;
+        const nextName = players[nextIndex].name;
+
+        // 待機画面を表示
+        DOM.passModalContent.innerHTML = `
+          <h2>${currentName} の番が終わりました</h2>
+          <p>端末を <strong>${nextName}</strong> に渡してください</p>
+          <button class="btn" id="passOkBtn">OK（${nextName} の番を開始）</button>
+        `;
+        DOM.passModal.style.display = 'flex';
+
+        document.getElementById('passOkBtn').addEventListener('click', () => {
+          DOM.passModal.style.display = 'none';
+          currentPlayerIndex = nextIndex;
+          myPlayerId = nextIndex;
+          myTurn = true;
+          inReach = false;
+          DOM.reachBadge.style.display = 'none';
+          DOM.currentPlayerDisplay.textContent = `現在: ${players[nextIndex].name} の番`;
+          renderHand();
+          renderMyDiscard();
+          renderOpponents();
+          updateBox();
+          setMsg(`${players[nextIndex].name} の番です`);
+        });
       }
 
       // ---- CPU対戦 ----
@@ -408,15 +519,15 @@
         box=createBox(); players=[{name:'あなた', hand:box.splice(0,8), discard:[], points:totalPoints},{name:'CPU', hand:box.splice(0,8), discard:[], points:300}];
         myPlayerId=0; currentPlayerIndex=Math.floor(Math.random()*2); gameFinished=false; inReach=false; myTurn=(currentPlayerIndex===0);
         DOM.opponentArea.style.display='block'; DOM.reachBadge.style.display='none';
-        updateBox(); renderHand(); renderMyDiscard(); renderOpponent(); updateTurnDisplay();
+        updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); updateTurnDisplay();
         if(!myTurn) setTimeout(cpuTurn, 1000);
       }
       function cpuTurn(){
         if(gameFinished || currentPlayerIndex!==1) return; const id=box.pop(); players[1].hand.push(id); updateBox();
-        if(players[1].hand.length===9){ const yaku=checkYaku(players[1].hand); if(yaku){ cpuWin(yaku); return; } const counts=getCounts(players[1].hand); let min=10, cands=[]; counts.forEach((c,i)=>{ if(c>0&&c<min){ min=c; cands=[i]; } else if(c===min) cands.push(i); }); const discardId=cands[Math.floor(Math.random()*cands.length)]; players[1].hand.splice(players[1].hand.indexOf(discardId),1); players[1].discard.push(discardId); setMsg(`CPUが${PIECE_TYPES[discardId].name}を捨てました`); renderOpponent(); } nextCpuTurn();
+        if(players[1].hand.length===9){ const yaku=checkYaku(players[1].hand); if(yaku){ cpuWin(yaku); return; } const counts=getCounts(players[1].hand); let min=10, cands=[]; counts.forEach((c,i)=>{ if(c>0&&c<min){ min=c; cands=[i]; } else if(c===min) cands.push(i); }); const discardId=cands[Math.floor(Math.random()*cands.length)]; players[1].hand.splice(players[1].hand.indexOf(discardId),1); players[1].discard.push(discardId); setMsg(`CPUが${PIECE_TYPES[discardId].name}を捨てました`); renderOpponents(); } nextCpuTurn();
       }
-      function nextCpuTurn(){ if(gameFinished) return; currentPlayerIndex=(currentPlayerIndex+1)%2; myTurn=(currentPlayerIndex===0); renderOpponent(); updateTurnDisplay(); if(!myTurn) setTimeout(cpuTurn, 1000); else if(!inReach && getMyHand().length===8){ const opts=getReachOptions(getMyHand()); if(opts.length>0) showReachOptions(opts); } }
-      function cpuWin(yaku){ gameFinished=true; inReach=false; players[1].points+=yaku.pts; players[0].points-=yaku.pts; totalPoints=players[0].points; DOM.totalPoints.textContent=totalPoints; renderOpponent(); showResult(false, yaku); }
+      function nextCpuTurn(){ if(gameFinished) return; currentPlayerIndex=(currentPlayerIndex+1)%2; myTurn=(currentPlayerIndex===0); renderOpponents(); updateTurnDisplay(); if(!myTurn) setTimeout(cpuTurn, 1000); else if(!inReach && getMyHand().length===8){ const opts=getReachOptions(getMyHand()); if(opts.length>0) showReachOptions(opts); } }
+      function cpuWin(yaku){ gameFinished=true; inReach=false; players[1].points+=yaku.pts; players[0].points-=yaku.pts; totalPoints=players[0].points; DOM.totalPoints.textContent=totalPoints; renderOpponents(); showResult(false, yaku); }
 
       // ---- 合言葉対戦 ----
       function createRoom(){
@@ -430,77 +541,65 @@
         myPlayerId=isHost?0:1; currentPlayerIndex=0; myTurn=isHost; gameFinished=false;
         DOM.startOnlineGameBtn.style.display='none'; DOM.opponentArea.style.display='block';
         conn.send({type:'start', hand:isHost?oppHand:myHand, points:isHost?300:totalPoints});
-        updateBox(); renderHand(); renderMyDiscard(); renderOpponent(); updateTurnDisplay();
+        updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); updateTurnDisplay();
       }
 
-      // ---- QR対戦（手動ID入力方式） ----
+      // ---- QR対戦 ----
       function showQR(){
-        qrHost = true; isHost = true;
-        peer = new Peer();
-        peer.on('open', (id) => {
-          DOM.qrCodeContainer.innerHTML = '';
-          // QRにはピュアIDのみを含める（短い文字列）
-          new QRCode(DOM.qrCodeContainer, {
-            text: id,
-            width: 280,
-            height: 280,
-            correctLevel: QRCode.CorrectLevel.L
-          });
-          DOM.displayedPeerId.textContent = `ID: ${id}`;
-          DOM.qrModal.style.display = 'flex';
-          DOM.qrConnectionStatus.textContent = '相手がIDを入力して接続するのを待っています...';
-        });
-        peer.on('connection', (c) => {
-          conn = c;
-          conn.on('data', data => handleOpponentMessage(data));
-          conn.on('open', () => {
-            DOM.qrConnectionStatus.textContent = '接続完了';
-            DOM.startQrGameBtn.style.display = 'inline-block';
-          });
-        });
+        qrHost=true; isHost=true; peer=new Peer();
+        peer.on('open',(id)=>{ DOM.qrCodeContainer.innerHTML=''; new QRCode(DOM.qrCodeContainer,{text:id,width:280,height:280,correctLevel:QRCode.CorrectLevel.L}); DOM.displayedPeerId.textContent=`ID: ${id}`; DOM.qrModal.style.display='flex'; DOM.qrConnectionStatus.textContent='相手がIDを入力して接続するのを待っています...'; });
+        peer.on('connection',(c)=>{ conn=c; conn.on('data',data=>handleOpponentMessage(data)); conn.on('open',()=>{ DOM.qrConnectionStatus.textContent='接続完了'; DOM.startQrGameBtn.style.display='inline-block'; }); });
       }
-
-      function connectToQrPeer(){
-        const peerId = DOM.qrPeerIdInput.value.trim();
-        if (!peerId) return;
-        qrHost = false; isHost = false;
-        peer = new Peer();
-        peer.on('open', () => {
-          conn = peer.connect(peerId);
-          conn.on('data', data => handleOpponentMessage(data));
-          conn.on('open', () => {
-            DOM.qrConnectionStatus.textContent = '接続完了';
-          });
-          conn.on('error', () => {
-            DOM.qrConnectionStatus.textContent = '接続失敗。IDを確認してください';
-          });
-        });
-      }
-
+      function connectToQrPeer(){ const peerId=DOM.qrPeerIdInput.value.trim(); if(!peerId) return; qrHost=false; isHost=false; peer=new Peer(); peer.on('open',()=>{ conn=peer.connect(peerId); conn.on('data',data=>handleOpponentMessage(data)); conn.on('open',()=>{ DOM.qrConnectionStatus.textContent='接続完了'; }); }); }
       function startQrGame(){
-        if(!conn||!conn.open) return;
-        box=createBox(); const myHand=box.splice(0,8); const oppHand=box.splice(0,8);
+        if(!conn||!conn.open) return; box=createBox(); const myHand=box.splice(0,8); const oppHand=box.splice(0,8);
         players=[ qrHost?{name:'あなた',hand:myHand,discard:[],points:totalPoints}:{name:'相手',hand:oppHand,discard:[],points:300}, qrHost?{name:'相手',hand:oppHand,discard:[],points:300}:{name:'あなた',hand:myHand,discard:[],points:totalPoints} ];
         myPlayerId=qrHost?0:1; currentPlayerIndex=0; myTurn=qrHost; gameFinished=false;
         DOM.startQrGameBtn.style.display='none'; DOM.opponentArea.style.display='block';
         conn.send({type:'start', hand:qrHost?oppHand:myHand, points:qrHost?300:totalPoints});
-        updateBox(); renderHand(); renderMyDiscard(); renderOpponent(); updateTurnDisplay();
+        updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); updateTurnDisplay();
       }
 
       // ---- 共通 オンライン対戦 メッセージ処理 ----
       function handleOpponentMessage(data){
-        if(data.type==='start'){ if(isHost) return; box=createBox(); const oppHand=data.hand; const myHand=box.splice(0,8); players=[{name:'相手',hand:oppHand,discard:[],points:data.points},{name:'あなた',hand:myHand,discard:[],points:totalPoints}]; myPlayerId=1; currentPlayerIndex=0; myTurn=false; gameFinished=false; DOM.opponentArea.style.display='block'; updateBox(); renderHand(); renderMyDiscard(); renderOpponent(); updateTurnDisplay(); }
-        else if(data.type==='draw'){ const opp=players[1-myPlayerId]; opp.hand.push(data.pieceId); if(data.boxRemaining!==undefined) box=Array(data.boxRemaining).fill(0); updateBox(); renderOpponent(); myTurn=true; currentPlayerIndex=myPlayerId; updateTurnDisplay(); }
-        else if(data.type==='discard'){ const opp=players[1-myPlayerId]; opp.hand=data.hand; opp.discard=data.discard; renderOpponent(); myTurn=true; currentPlayerIndex=myPlayerId; updateTurnDisplay(); }
-        else if(data.type==='win'){ const yaku=data.yaku; const method=data.method; if(method==='ron'){ applyPoints(1-myPlayerId, yaku.pts, 'ron'); } else { applyPoints(1-myPlayerId, yaku.pts, 'tsumo'); } totalPoints=players[myPlayerId].points; DOM.totalPoints.textContent=totalPoints; renderOpponent(); showResult(false, yaku); gameFinished=true; myTurn=false; }
+        if(data.type==='start'){ if(isHost) return; box=createBox(); const oppHand=data.hand; const myHand=box.splice(0,8); players=[{name:'相手',hand:oppHand,discard:[],points:data.points},{name:'あなた',hand:myHand,discard:[],points:totalPoints}]; myPlayerId=1; currentPlayerIndex=0; myTurn=false; gameFinished=false; DOM.opponentArea.style.display='block'; updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); updateTurnDisplay(); }
+        else if(data.type==='draw'){ const opp=players[1-myPlayerId]; opp.hand.push(data.pieceId); if(data.boxRemaining!==undefined) box=Array(data.boxRemaining).fill(0); updateBox(); renderOpponents(); myTurn=true; currentPlayerIndex=myPlayerId; updateTurnDisplay(); }
+        else if(data.type==='discard'){ const opp=players[1-myPlayerId]; opp.hand=data.hand; opp.discard=data.discard; renderOpponents(); myTurn=true; currentPlayerIndex=myPlayerId; updateTurnDisplay(); }
+        else if(data.type==='win'){ const yaku=data.yaku; const method=data.method; if(method==='ron'){ applyPoints(1-myPlayerId, yaku.pts, 'ron'); } else { applyPoints(1-myPlayerId, yaku.pts, 'tsumo'); } totalPoints=players[myPlayerId].points; DOM.totalPoints.textContent=totalPoints; renderOpponents(); showResult(false, yaku); gameFinished=true; myTurn=false; }
       }
       function sendToOpponent(data){ if(conn&&conn.open) conn.send(data); }
 
       function applyPoints(winnerIdx, yakuPts, method, fromIdx=null){
-        players[winnerIdx].points+=yakuPts; if(method==='ron' && fromIdx!==null) players[fromIdx].points-=yakuPts; else players[1-winnerIdx].points-=yakuPts;
-        totalPoints=players[myPlayerId].points; DOM.totalPoints.textContent=totalPoints;
+        players[winnerIdx].points+=yakuPts;
+        if(currentMode==='pass'){
+          // 対面パス：他全員で分割
+          const others = players.filter((_, i) => i !== winnerIdx);
+          const n = others.length;
+          if(n === 0) return;
+          const base = Math.floor(yakuPts / n / 5) * 5;
+          let remainder = yakuPts - base * n;
+          let start = (winnerIdx + 1) % players.length;
+          for(let i = 0; i < n; i++){
+            const idx = (start + i) % players.length;
+            if(idx === winnerIdx) continue;
+            let pay = base + (remainder > 0 ? 5 : 0);
+            if(remainder > 0) remainder -= 5;
+            players[idx].points -= pay;
+          }
+        } else if(method==='ron' && fromIdx!==null){
+          players[fromIdx].points -= yakuPts;
+        } else {
+          players[1-winnerIdx].points -= yakuPts;
+        }
+        totalPoints = players[myPlayerId].points;
+        DOM.totalPoints.textContent = totalPoints;
       }
-      function winGame(yaku, method, fromIdx=null){ gameFinished=true; inReach=false; DOM.reachBadge.style.display='none'; applyPoints(myPlayerId, yaku.pts, method, fromIdx); renderOpponent(); showResult(true, yaku); }
+
+      function winGame(yaku, method, fromIdx=null){
+        gameFinished=true; inReach=false; DOM.reachBadge.style.display='none';
+        applyPoints(myPlayerId, yaku.pts, method, fromIdx);
+        renderOpponents(); showResult(true, yaku);
+      }
 
       function showReachOptions(opts){
         DOM.reachModalContent.innerHTML='<h3>リーチしますか？</h3><p>可能な役:</p>';
@@ -508,27 +607,44 @@
         const cancelBtn=document.createElement('button'); cancelBtn.className='btn'; cancelBtn.textContent='いいえ'; cancelBtn.addEventListener('click',()=>{ DOM.reachModal.style.display='none'; }); DOM.reachModalContent.appendChild(cancelBtn); DOM.reachModal.style.display='flex';
       }
       function showResult(winner, yaku){
-        const msg = winner ? `🎉 あなたの勝ち！ ${yaku.name} (+${yaku.pts}pt)` : `😢 あなたの負け。 ${yaku.name} (-${yaku.pts}pt)`;
+        const msg = winner ? `🎉 ${players[myPlayerId].name}の勝ち！ ${yaku.name} (+${yaku.pts}pt)` : `😢 ${players[myPlayerId].name}の負け。 ${yaku.name} (-${yaku.pts}pt)`;
         DOM.resultModalContent.innerHTML = `<h2>${msg}</h2><button class="btn" id="resultOkBtn">OK</button>`; DOM.resultModal.style.display='flex';
         document.getElementById('resultOkBtn').addEventListener('click', ()=>{ DOM.resultModal.style.display='none'; });
       }
 
+      // 人数変更時の名前入力欄更新
+      DOM.passPlayerCount.addEventListener('change', () => {
+        const count = parseInt(DOM.passPlayerCount.value);
+        const container = document.getElementById('passNameInputs');
+        let html = '';
+        for(let i=1; i<=count; i++){
+          html += `<input class="room-input" type="text" placeholder="プレイヤー${i}の名前" id="passName${i}" style="margin:3px;"><br>`;
+        }
+        container.innerHTML = html;
+      });
+
       // モード切替
-      document.getElementById('cpuModeBtn').addEventListener('click',()=>{
-        currentMode='cpu'; DOM.onlineArea.style.display='none'; DOM.qrArea.style.display='none'; DOM.startCpuGameBtn.style.display='inline-block';
-        DOM.opponentArea.style.display='none'; document.getElementById('cpuModeBtn').classList.add('active'); document.getElementById('onlineModeBtn').classList.remove('active'); document.getElementById('qrModeBtn').classList.remove('active');
-        if(peer) peer.destroy(); peer=null; conn=null;
-      });
-      document.getElementById('onlineModeBtn').addEventListener('click',()=>{
-        currentMode='online'; DOM.onlineArea.style.display='block'; DOM.qrArea.style.display='none'; DOM.startCpuGameBtn.style.display='none';
-        DOM.opponentArea.style.display='none'; document.getElementById('onlineModeBtn').classList.add('active'); document.getElementById('cpuModeBtn').classList.remove('active'); document.getElementById('qrModeBtn').classList.remove('active');
-        if(peer) peer.destroy(); peer=null; conn=null;
-      });
-      document.getElementById('qrModeBtn').addEventListener('click',()=>{
-        currentMode='qr'; DOM.onlineArea.style.display='none'; DOM.qrArea.style.display='block'; DOM.startCpuGameBtn.style.display='none';
-        DOM.opponentArea.style.display='none'; document.getElementById('qrModeBtn').classList.add('active'); document.getElementById('cpuModeBtn').classList.remove('active'); document.getElementById('onlineModeBtn').classList.remove('active');
-        if(peer) peer.destroy(); peer=null; conn=null;
-      });
+      function switchMode(mode){
+        currentMode = mode;
+        DOM.onlineArea.style.display = 'none';
+        DOM.qrArea.style.display = 'none';
+        DOM.passArea.style.display = 'none';
+        DOM.startCpuGameBtn.style.display = 'none';
+        DOM.opponentArea.style.display = 'none';
+        DOM.passNextBtn.style.display = 'none';
+        DOM.currentPlayerDisplay.textContent = '';
+        document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+        if(peer) { peer.destroy(); peer=null; conn=null; }
+        if(mode==='cpu'){ DOM.startCpuGameBtn.style.display='inline-block'; document.getElementById('cpuModeBtn').classList.add('active'); }
+        else if(mode==='online'){ DOM.onlineArea.style.display='block'; document.getElementById('onlineModeBtn').classList.add('active'); }
+        else if(mode==='qr'){ DOM.qrArea.style.display='block'; document.getElementById('qrModeBtn').classList.add('active'); }
+        else if(mode==='pass'){ DOM.passArea.style.display='block'; document.getElementById('passModeBtn').classList.add('active'); }
+      }
+
+      document.getElementById('cpuModeBtn').addEventListener('click', ()=>switchMode('cpu'));
+      document.getElementById('onlineModeBtn').addEventListener('click', ()=>switchMode('online'));
+      document.getElementById('qrModeBtn').addEventListener('click', ()=>switchMode('qr'));
+      document.getElementById('passModeBtn').addEventListener('click', ()=>switchMode('pass'));
 
       // イベント
       DOM.startCpuGameBtn.addEventListener('click', newCpuGame);
@@ -539,15 +655,14 @@
       document.getElementById('connectQrBtn').addEventListener('click', connectToQrPeer);
       document.getElementById('closeQrBtn').addEventListener('click', ()=>{ DOM.qrModal.style.display='none'; });
       DOM.startQrGameBtn.addEventListener('click', startQrGame);
+      document.getElementById('startPassGameBtn').addEventListener('click', startPassGame);
+      DOM.passNextBtn.addEventListener('click', passToNext);
       document.getElementById('boxImage').addEventListener('click', drawRequest);
       document.getElementById('resetPointsBtn').addEventListener('click',()=>{ totalPoints=300; DOM.totalPoints.textContent=300; if(players[myPlayerId]) players[myPlayerId].points=300; });
 
       const discardBtn = document.createElement('button'); discardBtn.className='btn'; discardBtn.textContent='🗑️ 選択した牌を捨てる'; discardBtn.addEventListener('click', confirmDiscard);
       document.getElementById('gameArea').insertBefore(discardBtn, document.getElementById('messageArea'));
 
-      // 初期表示
-      DOM.onlineArea.style.display='none';
-      DOM.qrArea.style.display='none';
       DOM.totalPoints.textContent = totalPoints;
     }
   </script>
