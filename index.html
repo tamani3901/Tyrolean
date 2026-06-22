@@ -17,7 +17,7 @@
     .mode-bar { display:flex; gap:8px; margin:6px 0; flex-wrap:wrap; justify-content:center; }
     .mode-btn { padding:6px 16px; border-radius:20px; border:2px solid #d49b3b; background:#fff; font-weight:bold; cursor:pointer; font-size:0.9rem; }
     .mode-btn.active { background:#f0c27a; border-color:#b37b44; }
-    .sound-btn { background:#fff; border:2px solid #d49b3b; border-radius:20px; padding:6px 12px; font-size:1.2rem; cursor:pointer; }
+    .settings-btn { background:#fff; border:2px solid #d49b3b; border-radius:20px; padding:6px 14px; font-size:1.2rem; cursor:pointer; font-weight:bold; }
     .container { width:100%; max-width:500px; }
     .yaku-banner { width:100%; height:140px; background:#f7ede0; border:2px dashed #c9a87c; border-radius:12px; margin-bottom:8px; display:flex; align-items:center; justify-content:center; overflow:hidden; cursor: pointer; }
     .yaku-banner img { max-height:100%; max-width:100%; object-fit:contain; }
@@ -44,12 +44,13 @@
     .room-area { background:#fffbf2; border:2px solid #d49b3b; border-radius:16px; padding:12px; margin:10px 0; width:100%; max-width:500px; text-align:center; }
     .room-input { padding:8px 12px; font-size:1.2rem; width:180px; text-align:center; border-radius:12px; border:2px solid #d49b3b; }
     .rules-box { background:#fffbf2; border:2px solid #e6c89e; border-radius:16px; padding:10px; margin:8px 0; font-size:0.75rem; max-width:500px; }
-    #reachModal, #resultModal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; z-index:150; flex-direction:column; }
-    #reachModalContent, #resultModalContent { background:#fffbf2; border-radius:20px; padding:16px; max-width:360px; width:90%; text-align:center; }
+    #reachModal, #resultModal, #settingsModal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; z-index:150; flex-direction:column; }
+    #reachModalContent, #resultModalContent, #settingsModalContent { background:#fffbf2; border-radius:20px; padding:16px; max-width:360px; width:90%; text-align:center; }
     #passModal { position:fixed; top:0; left:0; width:100%; height:100%; background:#1a1a1a; display:flex; align-items:center; justify-content:center; z-index:170; flex-direction:column; }
     #passModalContent { background:#fffbf2; border-radius:20px; padding:24px; max-width:360px; width:90%; text-align:center; }
     .reach-yaku-item { padding:10px; background:#fef9f0; border:2px solid #d49b3b; border-radius:12px; margin:6px 0; cursor:pointer; position:relative; }
-    .reach-checkbox { position:absolute; top:10px; right:10px; transform:scale(1.2); }
+    .reach-checkbox { margin-left:8px; transform:scale(1.2); vertical-align:middle; }
+    .reach-checkbox-label { font-size:0.8rem; color:#8b5a2b; margin-left:4px; }
     .reach-badge { display:inline-block; background:#f0c27a; border-radius:20px; padding:4px 12px; font-weight:bold; margin-left:8px; }
     #reachBadge { display:none; position:fixed; top:10px; right:10px; background:#e05a2a; color:white; padding:4px 14px; border-radius:20px; font-weight:bold; z-index:50; font-size:0.9rem; }
     #qrModal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:180; flex-direction:column; }
@@ -83,7 +84,7 @@
         <button class="mode-btn" id="qrModeBtn">📷 QR対戦</button>
         <button class="mode-btn" id="passModeBtn">👥 対面パス</button>
       </div>
-      <button class="sound-btn" id="soundToggleBtn">🔊</button>
+      <button class="settings-btn" id="settingsBtn">⚙️</button>
     </div>
 
     <div class="rules-box">
@@ -128,6 +129,7 @@
 
   <div id="reachModal" style="display:none;"><div id="reachModalContent"></div></div>
   <div id="resultModal" style="display:none;"><div id="resultModalContent"></div></div>
+  <div id="settingsModal" style="display:none;"><div id="settingsModalContent"></div></div>
   <div id="passModal" style="display:none;"><div id="passModalContent"></div></div>
   <div id="qrModal" style="display:none;"><div id="qrCodeContainer"></div><p style="color:white; margin-top:8px;">このIDを相手に伝えてください</p><p id="displayedPeerId" style="color:#ff0; font-size:1.2rem; font-weight:bold; margin:4px;"></p><button class="btn" id="closeQrBtn" style="margin-top:12px; background:white;">閉じる</button></div>
   <div id="imageModal" style="display:none;"><img src="" id="imageModalImg"></div>
@@ -148,7 +150,11 @@
       const BOX_IMG = IMAGE_BASE_URL + 'box.png';
       const DRAW_SOUND = new Audio(IMAGE_BASE_URL + 'draw.mp3');
       let soundEnabled = true;
-      document.getElementById('soundToggleBtn').addEventListener('click', () => { soundEnabled = !soundEnabled; document.getElementById('soundToggleBtn').textContent = soundEnabled ? '🔊' : '🔇'; });
+      // サウンド設定はsettingsModalと連携するため、関数を用意
+      const updateSoundButton = () => {
+        document.getElementById('settingsBtn').textContent = soundEnabled ? '⚙️' : '⚙️🔇';
+      };
+      updateSoundButton();
 
       document.getElementById('boxImageImg').src = BOX_IMG;
       document.getElementById('yakuBannerImg').src = IMAGE_BASE_URL + 'yaku_all.png';
@@ -206,6 +212,8 @@
         reachModalContent: document.getElementById('reachModalContent'),
         resultModal: document.getElementById('resultModal'),
         resultModalContent: document.getElementById('resultModalContent'),
+        settingsModal: document.getElementById('settingsModal'),
+        settingsModalContent: document.getElementById('settingsModalContent'),
         passModal: document.getElementById('passModal'), passModalContent: document.getElementById('passModalContent'),
         passNextBtn: document.getElementById('passNextBtn'),
         currentPlayerDisplay: document.getElementById('currentPlayerDisplay'),
@@ -221,6 +229,32 @@
         passPlayerCount: document.getElementById('passPlayerCount'),
         gameResetBtn: document.getElementById('gameResetBtn'),
       };
+
+      // 設定モーダル
+      document.getElementById('settingsBtn').addEventListener('click', () => {
+        DOM.settingsModalContent.innerHTML = `
+          <h3>⚙️ 設定</h3>
+          <div style="margin:10px 0;">
+            <label><input type="checkbox" id="settingsSoundCheck" ${soundEnabled ? 'checked' : ''}> 効果音を有効にする</label>
+          </div>
+          <button class="btn" id="resetReachSuppressBtn">🔄 リーチ表示をリセット</button>
+          <p style="font-size:0.8rem; color:#8b5a2b; margin-top:8px;">リセットすると、非表示にしたリーチの選択肢が再表示されます。</p>
+          <button class="btn" id="closeSettingsBtn" style="margin-top:8px;">閉じる</button>
+        `;
+        DOM.settingsModal.style.display = 'flex';
+        document.getElementById('settingsSoundCheck').addEventListener('change', (e) => {
+          soundEnabled = e.target.checked;
+          updateSoundButton();
+        });
+        document.getElementById('resetReachSuppressBtn').addEventListener('click', () => {
+          suppressedReachOptions.clear();
+          setMsg('リーチ表示をリセットしました');
+          DOM.settingsModal.style.display = 'none';
+        });
+        document.getElementById('closeSettingsBtn').addEventListener('click', () => {
+          DOM.settingsModal.style.display = 'none';
+        });
+      });
 
       function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]; } return a; }
       function createBox(){ const p=[]; PIECE_TYPES.forEach((t,i)=>{ for(let j=0;j<t.count;j++) p.push(i); }); return shuffle(p); }
@@ -606,13 +640,31 @@
         opts.forEach(opt=>{
           const div=document.createElement('div'); div.className='reach-yaku-item';
           div.innerHTML=`${opt.yakuName} <span class="reach-badge">${opt.pts}pt</span><br><small>必要: ${PIECE_TYPES[opt.needPieceId].name}</small>`;
-          const cb=document.createElement('input'); cb.type='checkbox'; cb.className='reach-checkbox'; cb.title='この組み合わせを今後表示しない';
-          cb.addEventListener('change',(e)=>{ if(e.target.checked) suppressedReachOptions.add(`${opt.yakuName}_${opt.needPieceId}`); });
-          div.appendChild(cb);
-          div.addEventListener('click',(e)=>{ if(e.target.tagName!=='INPUT'){ inReach=true; reachNeedPieceIds=[opt.needPieceId]; DOM.reachModal.style.display='none'; DOM.reachBadge.style.display='block'; setMsg(`リーチ: ${opt.yakuName}`); } });
+          const cbLabel = document.createElement('label');
+          cbLabel.style.fontSize='0.8rem';
+          cbLabel.style.color='#8b5a2b';
+          cbLabel.innerHTML = '<input type="checkbox" class="reach-checkbox"> もう表示しない';
+          div.appendChild(cbLabel);
+          const cb = cbLabel.querySelector('input');
+          cb.addEventListener('change', (e) => {
+            if (e.target.checked) {
+              if (confirm('この組み合わせをもう表示しませんか？\n（設定から再度オンにできます）')) {
+                suppressedReachOptions.add(`${opt.yakuName}_${opt.needPieceId}`);
+              } else {
+                e.target.checked = false;
+              }
+            }
+          });
+          div.addEventListener('click', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'LABEL') return;
+            inReach=true; reachNeedPieceIds=[opt.needPieceId];
+            DOM.reachModal.style.display='none'; DOM.reachBadge.style.display='block';
+            setMsg(`リーチ: ${opt.yakuName}`);
+          });
           DOM.reachModalContent.appendChild(div);
         });
-        const cancelBtn=document.createElement('button'); cancelBtn.className='btn'; cancelBtn.textContent='いいえ'; cancelBtn.addEventListener('click',()=>{ DOM.reachModal.style.display='none'; });
+        const cancelBtn=document.createElement('button'); cancelBtn.className='btn'; cancelBtn.textContent='いいえ';
+        cancelBtn.addEventListener('click',()=>{ DOM.reachModal.style.display='none'; });
         DOM.reachModalContent.appendChild(cancelBtn);
         DOM.reachModal.style.display='flex';
       }
