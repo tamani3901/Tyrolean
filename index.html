@@ -79,12 +79,12 @@
       background: #fffbf2; border: 2px solid #e6c89e; border-radius: 16px;
       padding: 10px; margin: 8px 0; font-size: 0.75rem; max-width: 500px;
     }
-    #reachModal {
+    #reachModal, #resultModal {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.7); display: flex; align-items: center;
       justify-content: center; z-index: 150; flex-direction: column;
     }
-    #reachModalContent {
+    #reachModalContent, #resultModalContent {
       background: #fffbf2; border-radius: 20px; padding: 16px; max-width: 360px; width: 90%;
       text-align: center;
     }
@@ -100,6 +100,12 @@
       display: none; position: fixed; top: 10px; right: 10px;
       background: #e05a2a; color: white; padding: 4px 14px; border-radius: 20px;
       font-weight: bold; z-index: 50; font-size: 0.9rem;
+    }
+    @media (min-width: 768px) {
+      .container { max-width: 900px; }
+      .piece-slot { width: 72px; height: 72px; }
+      .box-image { width: 96px; height: 96px; }
+      .hand-area { gap: 10px; }
     }
   </style>
 </head>
@@ -124,45 +130,41 @@
       <details>
         <summary>📖 ルール</summary>
         ・8枚スタート→引いて9枚→不要牌を捨てる<br>
-        ・3枚セット×3組（計9枚）でアガリ<br>
-        ・相手の<b>最後の捨て牌</b>でロン可能<br>
-        ・役に応じて得点獲得
+        ・3枚セット×3組でアガリ<br>
+        ・相手の最後の捨て牌でロン可能<br>
+        ・リーチあり（捨てた後に選択可能）
       </details>
     </div>
 
     <div id="p2pArea" style="display:none; width:100%; max-width:500px; text-align:center;">
       <div class="room-area">
-        <p><strong>対戦を始める</strong></p>
-        <div style="margin-bottom:10px;">
-          <input class="room-input" type="text" id="roomCodeInput" placeholder="合言葉(数字4桁)" maxlength="6">
-          <button class="btn" id="createRoomBtn">📝 親として待つ</button>
+        <p><strong>2人対戦</strong></p>
+        <div><input class="room-input" type="text" id="roomCodeInput" placeholder="合言葉(数字4〜6桁)" maxlength="6"></div>
+        <div style="margin-top:8px;">
+          <button class="btn" id="createRoomBtn">📝 部屋を作る</button>
+          <button class="btn" id="joinRoomBtn">🔑 参加</button>
         </div>
-        <div>または</div>
-        <div style="margin-top:10px;">
-          <input class="room-input" type="text" id="joinCodeInput" placeholder="相手の合言葉" maxlength="6">
-          <button class="btn" id="joinRoomBtn">🔑 合言葉で参加</button>
-        </div>
+        <div id="connectionStatus" style="margin-top:8px;">未接続</div>
+        <button class="btn" id="startOnlineGameBtn" style="display:none;">▶️ ゲーム開始</button>
       </div>
-      <div id="connectionStatus" style="margin-top:8px;">未接続</div>
     </div>
 
-    <div id="opponentArea" class="opponent-area" style="display:none;">
+    <button class="btn" id="startCpuGameBtn">▶️ CPU戦を始める</button>
+
+    <div class="opponent-area" id="opponentArea" style="display:none;">
       <div>🤝 相手の手札: <span id="opponentHandCount">0</span>枚</div>
-      <div style="font-size:0.8rem;">捨て牌（赤枠の最後の1枚だけロン可能）:</div>
+      <div>捨て牌（赤枠の最後の1枚だけロン可能）:</div>
       <div class="discard-history" id="opponentDiscardHistory"></div>
     </div>
 
     <div class="container" id="gameArea">
-      <div class="yaku-banner" id="yakuBanner">
-        <img src="" alt="役一覧" id="yakuBannerImg">
-      </div>
+      <div class="yaku-banner" id="yakuBanner"><img src="" alt="役一覧" id="yakuBannerImg"></div>
       <div class="hand-area" id="handContainer"></div>
       <div class="box-section">
         <div class="box-image" id="boxImage"></div>
         <div>残り <span id="boxRemaining">84</span> 枚</div>
       </div>
       <div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap;">
-        <button class="btn" id="newGameBtn">🔄 新しいゲーム</button>
         <button class="btn" id="resetPointsBtn">💰 ポイントリセット</button>
       </div>
       <div class="message" id="messageArea"></div>
@@ -170,9 +172,8 @@
     </div>
   </div>
 
-  <div id="reachModal" style="display:none;">
-    <div id="reachModalContent"></div>
-  </div>
+  <div id="reachModal" style="display:none;"><div id="reachModalContent"></div></div>
+  <div id="resultModal" style="display:none;"><div id="resultModalContent"></div></div>
 
   <script>
     const GAME_PASSWORD = '1606tamani';
@@ -206,7 +207,6 @@
         { id:11,name:'ヘーゼルナッツ', color:'brown', count:6, file:'hazelnut.png' }
       ].map(t => ({ ...t, img: IMAGE_BASE_URL + t.file }));
 
-      // 完全な役一覧
       const YAKU_LIST = [
         { name:'オールワン', pts:300, check:c=>c.some(v=>v===9) },
         { name:'タブルセット', pts:150, check:c=>c.some(v=>v>=6) },
@@ -216,8 +216,7 @@
         { name:'ドリンクセット', pts:90, check:c=>c[2]===3&&c[3]===3&&c[4]===3&&c.reduce((a,b)=>a+b,0)===9 },
         { name:'サクサクおやつセット', pts:90, check:c=>c[10]===3&&c[1]===3&&c[11]===3&&c.reduce((a,b)=>a+b,0)===9 },
         { name:'キャラセット', pts:75, check:c=>{
-          const allowed=[10,5,3,7,11];
-          const present=allowed.filter(i=>c[i]===3);
+          const allowed=[10,5,3,7,11]; const present=allowed.filter(i=>c[i]===3);
           return present.length===3 && allowed.every(i=>c[i]===3||c[i]===0) && c.reduce((a,b)=>a+b,0)===9;
         }},
         { name:'基本セット', pts:60, check:c=>c[0]===3&&c[2]===3&&c[10]===3&&c.reduce((a,b)=>a+b,0)===9 },
@@ -234,68 +233,51 @@
         }}
       ];
 
-      let box=[], hand=[], totalPoints=300, gameFinished=false;
-      let currentMode='solo';
-      let peer = null, conn = null;
-      let isParent=false, myTurn=false, opponentHandCount=0;
-      let opponentDiscardHistory=[], myDiscardHistory=[];
+      let box=[], players=[], currentPlayerIndex=0, totalPoints=300, gameFinished=false;
+      let currentMode='cpu';
+      let myPlayerId=0;
+      let peer=null, conn=null;
+      let isHost=false;
       let selectedDiscardIndex=null;
-      let inReach = false;
-      let reachNeedPieceIds = [];
-      let reachYakuName = '';
+      let inReach=false, reachNeedPieceIds=[];
 
       const DOM = {
         handContainer: document.getElementById('handContainer'),
         boxRemaining: document.getElementById('boxRemaining'),
         messageArea: document.getElementById('messageArea'),
         totalPoints: document.getElementById('totalPoints'),
+        opponentArea: document.getElementById('opponentArea'),
         opponentHandCount: document.getElementById('opponentHandCount'),
         opponentDiscardHistory: document.getElementById('opponentDiscardHistory'),
-        opponentArea: document.getElementById('opponentArea'),
-        p2pArea: document.getElementById('p2pArea'),
-        connectionStatus: document.getElementById('connectionStatus'),
         reachBadge: document.getElementById('reachBadge'),
         reachModal: document.getElementById('reachModal'),
         reachModalContent: document.getElementById('reachModalContent'),
+        resultModal: document.getElementById('resultModal'),
+        resultModalContent: document.getElementById('resultModalContent'),
+        connectionStatus: document.getElementById('connectionStatus'),
+        startOnlineGameBtn: document.getElementById('startOnlineGameBtn'),
+        startCpuGameBtn: document.getElementById('startCpuGameBtn'),
       };
 
       function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]; } return a; }
       function createBox(){ const p=[]; PIECE_TYPES.forEach((t,i)=>{ for(let j=0;j<t.count;j++) p.push(i); }); return shuffle(p); }
       function getCounts(h){ const c=Array(12).fill(0); h.forEach(id=>c[id]++); return c; }
-
-      function isValidHand(hand){
-        const c=getCounts(hand);
-        const triples = c.filter(v=>v===3).length;
-        const sum = c.reduce((a,b)=>a+b,0);
-        return triples===3 && sum===9;
-      }
-
+      function isValidHand(hand){ const c=getCounts(hand); return c.filter(v=>v===3).length===3 && c.reduce((a,b)=>a+b,0)===9; }
       function checkYaku(h){
         const c=getCounts(h);
-        for(let y of YAKU_LIST){
-          if(y.check(c,h)) return {name:y.name, pts:y.pts};
-        }
+        for(let y of YAKU_LIST) if(y.check(c,h)) return {name:y.name, pts:y.pts};
         if(isValidHand(h)) return {name:'なんでも3種', pts:15};
         return null;
       }
+      function getReachOptions(h){ if(h.length!==8) return []; const opts=[]; for(let pid=0; pid<12; pid++){ const th=[...h, pid]; const y=checkYaku(th); if(y && !opts.some(o=>o.yakuName===y.name&&o.needPieceId===pid)) opts.push({yakuName:y.name, pts:y.pts, needPieceId:pid}); } return opts; }
 
-      function getReachOptions(currentHand) {
-        if (currentHand.length !== 8) return [];
-        const options = [];
-        for (let pieceId = 0; pieceId < 12; pieceId++) {
-          const testHand = [...currentHand, pieceId];
-          const yaku = checkYaku(testHand);
-          if (yaku) {
-            if (!options.some(o => o.yakuName === yaku.name && o.needPieceId === pieceId)) {
-              options.push({ yakuName: yaku.name, pts: yaku.pts, needPieceId: pieceId });
-            }
-          }
-        }
-        return options;
-      }
+      function getMyHand(){ return players[myPlayerId]?.hand || []; }
+      function setMyHand(h){ if(players[myPlayerId]) players[myPlayerId].hand = h; }
+      function getMyDiscard(){ return players[myPlayerId]?.discard || []; }
 
       function renderHand(){
         DOM.handContainer.innerHTML='';
+        const hand = getMyHand();
         for(let i=0;i<9;i++){
           const s=document.createElement('div'); s.className='piece-slot';
           if(i<hand.length){
@@ -308,268 +290,131 @@
         }
       }
 
-      function selectDiscard(index) {
-        if (!myTurn || hand.length !== 9) { setMsg('9枚のときに捨てる牌を選んでください', false); return; }
-        const slots = DOM.handContainer.querySelectorAll('.piece-slot');
-        slots.forEach(s => s.classList.remove('selected'));
-        selectedDiscardIndex = index;
-        slots[index].classList.add('selected');
-        setMsg(`「${PIECE_TYPES[hand[index]].name}」を捨てますか？ もう一度タップで決定`, true);
+      function selectDiscard(index){
+        if(!isMyTurn() || getMyHand().length!==9) return;
+        DOM.handContainer.querySelectorAll('.piece-slot').forEach(s=>s.classList.remove('selected'));
+        selectedDiscardIndex=index;
+        DOM.handContainer.querySelectorAll('.piece-slot')[index].classList.add('selected');
+        setMsg(`「${PIECE_TYPES[getMyHand()[index]].name}」を捨てますか？ もう一度タップで決定`, true);
       }
 
-      function confirmDiscard() {
-        if (selectedDiscardIndex === null || hand.length !== 9) { setMsg('捨てる牌を選んでください', false); return; }
-        const piece = hand.splice(selectedDiscardIndex, 1)[0];
-        myDiscardHistory.push(piece);
-        sendToPeer({type:'discard', pieceId:piece, hand:hand, discardHistory:myDiscardHistory});
-        renderHand(); myTurn = false; selectedDiscardIndex = null;
-        setMsg(`${PIECE_TYPES[piece].name}を捨てました。相手の番です`);
+      function confirmDiscard(){
+        if(selectedDiscardIndex===null || getMyHand().length!==9) return;
+        const piece = getMyHand().splice(selectedDiscardIndex,1)[0];
+        players[myPlayerId].discard.push(piece);
+        renderHand(); renderMyDiscard(); selectedDiscardIndex=null;
+        setMsg(`${PIECE_TYPES[piece].name}を捨てました`);
+        if(currentMode==='cpu'){ nextCpuTurn(); }
+        else { sendToOpponent({type:'discard', pieceId:piece, hand:getMyHand(), discard:players[myPlayerId].discard}); myTurn=false; updateTurnDisplay(); }
+        if(!inReach && getMyHand().length===8){ const opts=getReachOptions(getMyHand()); if(opts.length>0) showReachOptions(opts); }
+      }
+
+      function renderMyDiscard(){
+        DOM.myDiscardHistory.innerHTML=''; getMyDiscard().forEach(id=>{ const chip=document.createElement('div'); chip.className='discard-chip'; const img=document.createElement('img'); img.src=PIECE_TYPES[id].img; img.style.width='100%'; chip.appendChild(img); DOM.myDiscardHistory.appendChild(chip); });
+      }
+
+      function renderOpponent(){
+        if(!players[0] || !players[1]) return;
+        const opp = players[1-myPlayerId];
+        DOM.opponentHandCount.textContent = opp.hand.length;
+        DOM.opponentDiscardHistory.innerHTML='';
+        opp.discard.forEach((id, i)=>{ const chip=document.createElement('div'); chip.className='discard-chip'; const img=document.createElement('img'); img.src=PIECE_TYPES[id].img; img.style.width='100%'; if(i===opp.discard.length-1){ chip.classList.add('latest'); chip.addEventListener('click', ()=>ronRequest(id)); } chip.appendChild(img); DOM.opponentDiscardHistory.appendChild(chip); });
       }
 
       function updateBox(){ DOM.boxRemaining.textContent=box.length; }
       function setMsg(t,good=true){ DOM.messageArea.textContent=t; DOM.messageArea.style.color=good?'#b45f2a':'#a33'; }
+      function isMyTurn(){ return players.length>0 && currentPlayerIndex===myPlayerId && !gameFinished; }
+      let myTurn=false;
+      function updateTurnDisplay(){ if(gameFinished) return; if(isMyTurn()) setMsg('あなたの番です'); else setMsg('相手の番です'); }
 
-      function showReachOptions(options) {
-        DOM.reachModalContent.innerHTML = '<h3>リーチしますか？</h3><p>可能な役:</p>';
-        options.forEach(opt => {
-          const div = document.createElement('div');
-          div.className = 'reach-yaku-item';
-          div.innerHTML = `${opt.yakuName} <span class="reach-badge">${opt.pts}pt</span><br><small>必要: ${PIECE_TYPES[opt.needPieceId].name}</small>`;
-          div.addEventListener('click', () => {
-            inReach = true;
-            reachNeedPieceIds = [opt.needPieceId];
-            reachYakuName = opt.yakuName;
-            DOM.reachModal.style.display = 'none';
-            DOM.reachBadge.style.display = 'block';
-            setMsg(`リーチ: ${opt.yakuName} 必要牌: ${PIECE_TYPES[opt.needPieceId].name}`);
-          });
-          DOM.reachModalContent.appendChild(div);
-        });
-        const cancelBtn = document.createElement('button');
-        cancelBtn.className = 'btn';
-        cancelBtn.textContent = 'いいえ（リーチしない）';
-        cancelBtn.addEventListener('click', () => {
-          DOM.reachModal.style.display = 'none';
-        });
-        DOM.reachModalContent.appendChild(cancelBtn);
-        DOM.reachModal.style.display = 'flex';
-      }
-
-      function drawFromBox(){
-        if (!myTurn || hand.length >= 9 || box.length === 0) return;
-        if (hand.length !== 8) { setMsg('8枚のときに引いてください', false); return; }
-
-        const id = box.pop();
-        hand.push(id);
-        updateBox(); renderHand();
-
-        if (hand.length === 9) {
-          if (inReach) {
-            if (reachNeedPieceIds.includes(id)) {
-              const yaku = checkYaku(hand);
-              if (yaku) {
-                sendToPeer({type:'win', yaku:yaku, method:'tsumo'});
-                setMsg(`🎉 ツモ！ ${yaku.name} +${yaku.pts}pt`);
-                totalPoints += yaku.pts; DOM.totalPoints.textContent = totalPoints;
-                gameFinished = true; myTurn = false; inReach = false; DOM.reachBadge.style.display = 'none';
-                return;
-              }
-            }
-            const discardId = hand.pop();
-            setMsg(`${PIECE_TYPES[discardId].name}を引いたが不要なので捨てます`, true);
-            setTimeout(() => {
-              myDiscardHistory.push(discardId);
-              sendToPeer({type:'discard', pieceId:discardId, hand:hand, discardHistory:myDiscardHistory});
-              renderHand(); myTurn = false;
-              setMsg(`相手の番です`, true);
-            }, 800);
-            return;
-          }
-
-          const yaku = checkYaku(hand);
-          if (yaku) {
-            sendToPeer({type:'win', yaku:yaku, method:'tsumo'});
-            setMsg(`🎉 ツモ！ ${yaku.name} +${yaku.pts}pt`);
-            totalPoints += yaku.pts; DOM.totalPoints.textContent = totalPoints;
-            gameFinished = true; myTurn = false;
-          } else {
-            setMsg('役がありません。捨てる牌を選んで「捨てる」ボタンを押してください');
-          }
+      function drawRequest(){
+        if(!isMyTurn() || getMyHand().length!==8 || box.length===0) return;
+        const id=box.pop(); getMyHand().push(id); updateBox(); renderHand();
+        if(currentMode==='cpu'){
+          if(getMyHand().length===9){ const yaku=checkYaku(getMyHand()); if(yaku){ winGame(yaku,'tsumo'); return; } else setMsg('役がありません。捨てる牌を選んでください'); }
         } else {
-          setMsg(`${PIECE_TYPES[id].name}を引きました`);
+          sendToOpponent({type:'draw', pieceId:id, boxRemaining:box.length});
+          if(getMyHand().length===9){ const yaku=checkYaku(getMyHand()); if(yaku){ winGame(yaku,'tsumo'); sendToOpponent({type:'win', yaku:yaku, method:'tsumo'}); } else setMsg('役がありません。捨てる牌を選んでください'); }
         }
       }
 
-      function ronWithDiscard(discardId) {
-        if (!myTurn || hand.length !== 8) return;
-        const testHand = [...hand, discardId];
-        const yaku = checkYaku(testHand);
-        if (yaku) {
-          if (inReach && !reachNeedPieceIds.includes(discardId)) {
-            setMsg('リーチ中の必要牌ではありません', false);
-            return;
-          }
-          hand.push(discardId);
-          sendToPeer({type:'win', yaku:yaku, method:'ron', discardId:discardId});
-          setMsg(`🎉 ロン！ ${yaku.name} +${yaku.pts}pt`);
-          totalPoints += yaku.pts; DOM.totalPoints.textContent = totalPoints;
-          gameFinished = true; myTurn = false; inReach = false; DOM.reachBadge.style.display = 'none';
-          renderHand();
-        } else {
-          setMsg('その牌ではアガれません', false);
-        }
+      function ronRequest(discardId){
+        if(!isMyTurn() || getMyHand().length!==8) return;
+        const testHand=[...getMyHand(), discardId]; const yaku=checkYaku(testHand);
+        if(yaku){ if(inReach && !reachNeedPieceIds.includes(discardId)){ setMsg('リーチ中の必要牌ではありません', false); return; } getMyHand().push(discardId); if(currentMode==='cpu'){ winGame(yaku,'ron'); } else { winGame(yaku,'ron'); sendToOpponent({type:'win', yaku:yaku, method:'ron', discardId}); } }
+        else setMsg('その牌ではアガれません', false);
       }
 
-      function newSoloGame(){
-        box=createBox(); hand=box.splice(0,8); gameFinished=false; myTurn=true; inReach=false;
-        DOM.reachBadge.style.display='none';
-        updateBox(); renderHand(); setMsg('8枚配られました。箱をタップして1枚引いてください');
+      // ---- CPU対戦 ----
+      function newCpuGame(){
+        box=createBox(); players=[{name:'あなた', hand:box.splice(0,8), discard:[], points:totalPoints},{name:'CPU', hand:box.splice(0,8), discard:[], points:300}];
+        myPlayerId=0; currentPlayerIndex=Math.floor(Math.random()*2); gameFinished=false; inReach=false; myTurn=(currentPlayerIndex===0);
+        DOM.opponentArea.style.display='block'; DOM.reachBadge.style.display='none';
+        updateBox(); renderHand(); renderMyDiscard(); renderOpponent(); updateTurnDisplay();
+        if(!myTurn) setTimeout(cpuTurn, 1000);
+      }
+      function cpuTurn(){
+        if(gameFinished || currentPlayerIndex!==1) return; const id=box.pop(); players[1].hand.push(id); updateBox();
+        if(players[1].hand.length===9){ const yaku=checkYaku(players[1].hand); if(yaku){ cpuWin(yaku); return; } const counts=getCounts(players[1].hand); let min=10, cands=[]; counts.forEach((c,i)=>{ if(c>0&&c<min){ min=c; cands=[i]; } else if(c===min) cands.push(i); }); const discardId=cands[Math.floor(Math.random()*cands.length)]; players[1].hand.splice(players[1].hand.indexOf(discardId),1); players[1].discard.push(discardId); setMsg(`CPUが${PIECE_TYPES[discardId].name}を捨てました`); renderOpponent(); } nextCpuTurn();
+      }
+      function nextCpuTurn(){ if(gameFinished) return; currentPlayerIndex=(currentPlayerIndex+1)%2; myTurn=(currentPlayerIndex===0); renderOpponent(); updateTurnDisplay(); if(!myTurn) setTimeout(cpuTurn, 1000); else if(!inReach && getMyHand().length===8){ const opts=getReachOptions(getMyHand()); if(opts.length>0) showReachOptions(opts); } }
+      function cpuWin(yaku){ gameFinished=true; inReach=false; players[1].points+=yaku.pts; players[0].points-=yaku.pts; totalPoints=players[0].points; DOM.totalPoints.textContent=totalPoints; renderOpponent(); showResult(false, yaku); }
+
+      // ---- オンライン対戦 ----
+      function createRoom(){
+        const code=document.getElementById('roomCodeInput').value.trim(); if(!/^\d{4,6}$/.test(code)){ setMsg('合言葉は4〜6桁の数字', false); return; } isHost=true; peer=new Peer(code);
+        peer.on('open',()=>{ DOM.connectionStatus.textContent=`部屋作成: ${code}`; }); peer.on('connection',c=>{ conn=c; conn.on('data',data=>handleOpponentMessage(data)); conn.on('open',()=>{ DOM.connectionStatus.textContent='接続完了'; DOM.startOnlineGameBtn.style.display='inline-block'; }); });
+      }
+      function joinRoom(){ const code=document.getElementById('roomCodeInput').value.trim(); if(!code) return; isHost=false; peer=new Peer(); peer.on('open',()=>{ conn=peer.connect(code); conn.on('data',data=>handleOpponentMessage(data)); conn.on('open',()=>{ DOM.connectionStatus.textContent='接続完了'; }); }); }
+      function startOnlineGame(){
+        if(!conn||!conn.open) return; box=createBox(); const myHand=box.splice(0,8); const oppHand=box.splice(0,8);
+        players=[ isHost?{name:'あなた',hand:myHand,discard:[],points:totalPoints}:{name:'相手',hand:oppHand,discard:[],points:300}, isHost?{name:'相手',hand:oppHand,discard:[],points:300}:{name:'あなた',hand:myHand,discard:[],points:totalPoints} ];
+        myPlayerId=isHost?0:1; currentPlayerIndex=0; myTurn=isHost; gameFinished=false;
+        DOM.startOnlineGameBtn.style.display='none'; DOM.opponentArea.style.display='block';
+        conn.send({type:'start', hand:isHost?oppHand:myHand, points:isHost?300:totalPoints});
+        updateBox(); renderHand(); renderMyDiscard(); renderOpponent(); updateTurnDisplay();
+      }
+      function handleOpponentMessage(data){
+        if(data.type==='start'){ if(isHost) return; box=createBox(); const oppHand=data.hand; const myHand=box.splice(0,8); players=[{name:'相手',hand:oppHand,discard:[],points:data.points},{name:'あなた',hand:myHand,discard:[],points:totalPoints}]; myPlayerId=1; currentPlayerIndex=0; myTurn=false; gameFinished=false; DOM.opponentArea.style.display='block'; updateBox(); renderHand(); renderMyDiscard(); renderOpponent(); updateTurnDisplay(); }
+        else if(data.type==='draw'){ const opp=players[1-myPlayerId]; opp.hand.push(data.pieceId); if(data.boxRemaining!==undefined) box=Array(data.boxRemaining).fill(0); updateBox(); renderOpponent(); myTurn=true; currentPlayerIndex=myPlayerId; updateTurnDisplay(); }
+        else if(data.type==='discard'){ const opp=players[1-myPlayerId]; opp.hand=data.hand; opp.discard=data.discard; renderOpponent(); myTurn=true; currentPlayerIndex=myPlayerId; updateTurnDisplay(); }
+        else if(data.type==='win'){ const yaku=data.yaku; const method=data.method; if(method==='ron'){ applyPoints(1-myPlayerId, yaku.pts, 'ron'); } else { applyPoints(1-myPlayerId, yaku.pts, 'tsumo'); } totalPoints=players[myPlayerId].points; DOM.totalPoints.textContent=totalPoints; renderOpponent(); showResult(false, yaku); gameFinished=true; myTurn=false; }
+      }
+      function sendToOpponent(data){ if(conn&&conn.open) conn.send(data); }
+
+      function applyPoints(winnerIdx, yakuPts, method, fromIdx=null){
+        players[winnerIdx].points+=yakuPts; if(method==='ron' && fromIdx!==null) players[fromIdx].points-=yakuPts; else players[1-winnerIdx].points-=yakuPts;
+        totalPoints=players[myPlayerId].points; DOM.totalPoints.textContent=totalPoints;
+      }
+      function winGame(yaku, method, fromIdx=null){ gameFinished=true; inReach=false; DOM.reachBadge.style.display='none'; applyPoints(myPlayerId, yaku.pts, method, fromIdx); renderOpponent(); showResult(true, yaku); }
+
+      function showReachOptions(opts){
+        DOM.reachModalContent.innerHTML='<h3>リーチしますか？</h3><p>可能な役:</p>';
+        opts.forEach(opt=>{ const div=document.createElement('div'); div.className='reach-yaku-item'; div.innerHTML=`${opt.yakuName} <span class="reach-badge">${opt.pts}pt</span><br><small>必要: ${PIECE_TYPES[opt.needPieceId].name}</small>`; div.addEventListener('click',()=>{ inReach=true; reachNeedPieceIds=[opt.needPieceId]; DOM.reachModal.style.display='none'; DOM.reachBadge.style.display='block'; setMsg(`リーチ: ${opt.yakuName}`); }); DOM.reachModalContent.appendChild(div); });
+        const cancelBtn=document.createElement('button'); cancelBtn.className='btn'; cancelBtn.textContent='いいえ'; cancelBtn.addEventListener('click',()=>{ DOM.reachModal.style.display='none'; }); DOM.reachModalContent.appendChild(cancelBtn); DOM.reachModal.style.display='flex';
+      }
+      function showResult(winner, yaku){
+        const msg = winner ? `🎉 あなたの勝ち！ ${yaku.name} (+${yaku.pts}pt)` : `😢 あなたの負け。 ${yaku.name} (-${yaku.pts}pt)`;
+        DOM.resultModalContent.innerHTML = `<h2>${msg}</h2><button class="btn" id="resultOkBtn">OK</button>`; DOM.resultModal.style.display='flex';
+        document.getElementById('resultOkBtn').addEventListener('click', ()=>{ DOM.resultModal.style.display='none'; });
       }
 
-      // ---- PeerJS接続 ----
-      function setupPeer(myId, asParent) {
-        if (peer) peer.destroy();
-        peer = new Peer(myId);
-        peer.on('open', () => {
-          DOM.connectionStatus.textContent = asParent ? '相手の接続待ち...' : '接続中...';
-        });
-        peer.on('connection', (incomingConn) => {
-          conn = incomingConn;
-          setupConnectionEvents();
-        });
-      }
+      // モード切替
+      document.getElementById('soloModeBtn').addEventListener('click',()=>{ currentMode='cpu'; document.getElementById('p2pArea').style.display='none'; document.getElementById('startCpuGameBtn').style.display='inline-block'; document.getElementById('soloModeBtn').classList.add('active'); document.getElementById('battleModeBtn').classList.remove('active'); if(peer) peer.destroy(); peer=null; conn=null; DOM.opponentArea.style.display='none'; });
+      document.getElementById('battleModeBtn').addEventListener('click',()=>{ currentMode='online'; document.getElementById('p2pArea').style.display='block'; document.getElementById('startCpuGameBtn').style.display='none'; document.getElementById('battleModeBtn').classList.add('active'); document.getElementById('soloModeBtn').classList.remove('active'); DOM.opponentArea.style.display='none'; });
 
-      function setupConnectionEvents() {
-        conn.on('open', () => {
-          DOM.connectionStatus.textContent = '接続完了！';
-          DOM.opponentArea.style.display = 'block';
-          if (isParent) startP2PGame();
-        });
-        conn.on('data', (data) => {
-          if (data.type === 'draw') {
-            hand = data.hand; box = data.box; updateBox(); renderHand();
-            if (hand.length === 9) {
-              const yaku = checkYaku(hand);
-              if (yaku) {
-                sendToPeer({type:'win', yaku:yaku, method:'tsumo'});
-                setMsg(`🎉 ツモ！ ${yaku.name} +${yaku.pts}pt`);
-                totalPoints += yaku.pts; DOM.totalPoints.textContent = totalPoints;
-                gameFinished = true; myTurn = false;
-                return;
-              }
-            }
-            myTurn = true;
-            if (!inReach && hand.length === 8) {
-              const options = getReachOptions(hand);
-              if (options.length > 0) { showReachOptions(options); return; }
-            }
-            setMsg('あなたの番です。捨てる牌を選んでください');
-          } else if (data.type === 'discard') {
-            opponentDiscardHistory = data.discardHistory;
-            opponentHandCount = data.hand.length;
-            DOM.opponentHandCount.textContent = opponentHandCount;
-            renderOpponentDiscard();
-            myTurn = true;
-            if (!inReach && hand.length === 8) {
-              const options = getReachOptions(hand);
-              if (options.length > 0) { showReachOptions(options); return; }
-            }
-            setMsg('あなたの番です。箱から引くか、相手の最後の捨て牌でロンできます');
-          } else if (data.type === 'win') {
-            setMsg(`相手の${data.method==='ron'?'ロン':'ツモ'}！ ${data.yaku.name}`, false);
-            gameFinished = true; myTurn = false; inReach = false;
-          } else if (data.type === 'start') {
-            isParent = data.isParent;
-            box = data.box; hand = data.hand;
-            opponentHandCount = 8;
-            myTurn = isParent;
-            updateBox(); renderHand();
-            DOM.opponentHandCount.textContent = opponentHandCount;
-            if (isParent && hand.length === 8) {
-              const options = getReachOptions(hand);
-              if (options.length > 0) { showReachOptions(options); return; }
-            }
-            setMsg(isParent?'あなたが親です。箱をタップして引いてください':'相手が親です。待機してください');
-          }
-        });
-      }
+      // イベント
+      DOM.startCpuGameBtn.addEventListener('click', newCpuGame);
+      document.getElementById('createRoomBtn').addEventListener('click', createRoom);
+      document.getElementById('joinRoomBtn').addEventListener('click', joinRoom);
+      DOM.startOnlineGameBtn.addEventListener('click', startOnlineGame);
+      document.getElementById('boxImage').addEventListener('click', drawRequest);
+      document.getElementById('resetPointsBtn').addEventListener('click',()=>{ totalPoints=300; DOM.totalPoints.textContent=300; if(players[myPlayerId]) players[myPlayerId].points=300; });
 
-      function sendToPeer(data){ if(conn && conn.open) conn.send(data); }
-
-      function renderOpponentDiscard(){
-        DOM.opponentDiscardHistory.innerHTML='';
-        opponentDiscardHistory.forEach((id, idx) => {
-          const chip = document.createElement('div');
-          chip.className = 'discard-chip';
-          const img = document.createElement('img'); img.src=PIECE_TYPES[id].img; img.style.width='100%';
-          chip.appendChild(img);
-          if (idx === opponentDiscardHistory.length-1) {
-            chip.classList.add('latest');
-            chip.addEventListener('click', () => ronWithDiscard(id));
-          }
-          DOM.opponentDiscardHistory.appendChild(chip);
-        });
-      }
-
-      function startP2PGame(){
-        myDiscardHistory=[]; opponentDiscardHistory=[];
-        box=createBox(); hand=box.splice(0,8);
-        const oppHand=box.splice(0,8);
-        sendToPeer({type:'start', isParent:false, box, hand: oppHand});
-        myTurn = isParent; inReach = false; DOM.reachBadge.style.display='none';
-        updateBox(); renderHand();
-        DOM.opponentHandCount.textContent = 8;
-        setMsg(isParent?'親です。箱をタップして引いてください':'相手の番です');
-      }
-
-      // 合言葉UI
-      document.getElementById('createRoomBtn').addEventListener('click', () => {
-        const code = document.getElementById('roomCodeInput').value.trim();
-        if (!/^\d{4,6}$/.test(code)) { setMsg('合言葉は数字4〜6桁で入力してください', false); return; }
-        isParent = true;
-        setupPeer(code, true);
-      });
-      document.getElementById('joinRoomBtn').addEventListener('click', () => {
-        const code = document.getElementById('joinCodeInput').value.trim();
-        if (!code) return;
-        isParent = false;
-        setupPeer('child-' + Math.random().toString(36).slice(2), false);
-        peer.on('open', () => {
-          conn = peer.connect(code);
-          setupConnectionEvents();
-        });
-      });
-
-      document.getElementById('soloModeBtn').addEventListener('click',()=>{
-        currentMode='solo'; DOM.p2pArea.style.display='none'; DOM.opponentArea.style.display='none';
-        if (conn) conn.close(); if (peer) peer.destroy();
-        newSoloGame();
-        document.getElementById('soloModeBtn').classList.add('active');
-        document.getElementById('battleModeBtn').classList.remove('active');
-      });
-      document.getElementById('battleModeBtn').addEventListener('click',()=>{
-        currentMode='battle'; DOM.p2pArea.style.display='block'; DOM.opponentArea.style.display='none';
-        DOM.connectionStatus.textContent='未接続';
-        document.getElementById('battleModeBtn').classList.add('active');
-        document.getElementById('soloModeBtn').classList.remove('active');
-      });
-
-      document.getElementById('boxImage').addEventListener('click', drawFromBox);
-      document.getElementById('newGameBtn').addEventListener('click', ()=>{
-        if(currentMode==='solo') newSoloGame();
-        else if (isParent && conn && conn.open) startP2PGame();
-      });
-      document.getElementById('resetPointsBtn').addEventListener('click',()=>{
-        totalPoints=300; DOM.totalPoints.textContent=300;
-      });
-
-      const discardBtn = document.createElement('button');
-      discardBtn.className = 'btn';
-      discardBtn.textContent = '🗑️ 選択した牌を捨てる';
-      discardBtn.addEventListener('click', confirmDiscard);
+      const discardBtn = document.createElement('button'); discardBtn.className='btn'; discardBtn.textContent='🗑️ 選択した牌を捨てる'; discardBtn.addEventListener('click', confirmDiscard);
       document.getElementById('gameArea').insertBefore(discardBtn, document.getElementById('messageArea'));
 
-      newSoloGame();
+      document.getElementById('p2pArea').style.display='none';
       DOM.totalPoints.textContent = totalPoints;
     }
   </script>
