@@ -22,12 +22,13 @@
     .yaku-banner { width:100%; height:140px; background:#f7ede0; border:2px dashed #c9a87c; border-radius:12px; margin-bottom:8px; display:flex; align-items:center; justify-content:center; overflow:hidden; cursor: pointer; }
     .yaku-banner img { max-height:100%; max-width:100%; object-fit:contain; }
     .hand-area { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; min-height:70px; margin:6px 0; }
-    .piece-slot { width:60px; height:60px; background:#f5e1c4; border-radius:12px; border:3px solid #c9a16e; cursor:grab; background-size:cover; transition:0.1s; position:relative; touch-action:none; }
+    .piece-slot { width:60px; height:60px; background:#f5e1c4; border-radius:12px; border:3px solid #c9a16e; cursor:grab; background-size:cover; transition:0.1s; position:relative; }
     .piece-slot:active { cursor:grabbing; }
     .piece-slot img { width:100%; height:100%; border-radius:9px; object-fit:cover; pointer-events:none; }
     .piece-slot.empty { background:#f3ede5; border:2px dashed #d6c3a5; cursor:default; }
     .piece-slot.selected { border-color:#e05a2a; box-shadow:0 0 8px #e05a2a; }
-    .piece-slot.dragging { opacity:0.5; transform:scale(1.05); z-index:10; }
+    .piece-slot.dragging { opacity:0.4; transform:scale(1.05); z-index:10; }
+    .piece-slot.drag-over { border-color:#f0c27a; box-shadow:0 0 8px #f0c27a; }
     .piece-slot.no-drag { cursor:pointer; }
     .box-section { display:flex; align-items:center; justify-content:center; gap:12px; margin:10px 0; }
     .box-image { width:80px; height:80px; background:#d9b382; border-radius:16px; border:4px solid #b78b5a; cursor:pointer; overflow:hidden; background-size:cover; }
@@ -60,12 +61,7 @@
     .coin-stack img:first-child { margin-left:0; }
     .coin-label { font-size:0.8rem; margin-left:2px; color:#6b5a44; }
     #coinDisplay { display:flex; flex-wrap:wrap; justify-content:center; gap:12px; margin-top:4px; }
-    @media (min-width:768px) {
-      .container { max-width:900px; }
-      .piece-slot { width:72px; height:72px; }
-      .box-image { width:96px; height:96px; }
-      .hand-area { gap:10px; }
-    }
+    @media (min-width:768px) { .container { max-width:900px; } .piece-slot { width:72px; height:72px; } .box-image { width:96px; height:96px; } .hand-area { gap:10px; } }
   </style>
 </head>
 <body>
@@ -152,20 +148,12 @@
       const BOX_IMG = IMAGE_BASE_URL + 'box.png';
       const DRAW_SOUND = new Audio(IMAGE_BASE_URL + 'draw.mp3');
       let soundEnabled = true;
-      document.getElementById('soundToggleBtn').addEventListener('click', () => {
-        soundEnabled = !soundEnabled;
-        document.getElementById('soundToggleBtn').textContent = soundEnabled ? '🔊' : '🔇';
-      });
+      document.getElementById('soundToggleBtn').addEventListener('click', () => { soundEnabled = !soundEnabled; document.getElementById('soundToggleBtn').textContent = soundEnabled ? '🔊' : '🔇'; });
 
       document.getElementById('boxImageImg').src = BOX_IMG;
       document.getElementById('yakuBannerImg').src = IMAGE_BASE_URL + 'yaku_all.png';
-      document.getElementById('yakuBanner').addEventListener('click', () => {
-        document.getElementById('imageModalImg').src = IMAGE_BASE_URL + 'yaku_all.png';
-        document.getElementById('imageModal').style.display = 'flex';
-      });
-      document.getElementById('imageModal').addEventListener('click', () => {
-        document.getElementById('imageModal').style.display = 'none';
-      });
+      document.getElementById('yakuBanner').addEventListener('click', () => { document.getElementById('imageModalImg').src = IMAGE_BASE_URL + 'yaku_all.png'; document.getElementById('imageModal').style.display = 'flex'; });
+      document.getElementById('imageModal').addEventListener('click', () => { document.getElementById('imageModal').style.display = 'none'; });
 
       const PIECE_TYPES = [
         { id:0, name:'コーヒーヌガー', color:'brown', count:9, file:'coffee_nougat.png' },
@@ -200,7 +188,6 @@
       let currentMode='cpu', myPlayerId=0, peer=null, conn=null, isHost=false, qrHost=false;
       let selectedDiscardIndex=null, inReach=false, reachNeedPieceIds=[];
       let suppressedReachOptions = new Set();
-      // コイン初期設定
       const INITIAL_COIN_COUNTS = {100:1, 50:2, 10:6, 5:8};
       let coinCounts = {...INITIAL_COIN_COUNTS};
 
@@ -261,93 +248,110 @@
       function setMyHand(h){ if(players[myPlayerId]) players[myPlayerId].hand = h; }
       function getMyDiscard(){ return players[myPlayerId]?.discard || []; }
 
+      function enableDragSort(container, handArray) {
+        let dragSrcEl = null;
+        container.querySelectorAll('.piece-slot:not(.empty)').forEach(slot => {
+          slot.setAttribute('draggable', 'true');
+          slot.addEventListener('dragstart', function(e) {
+            dragSrcEl = this;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', this.innerHTML);
+            this.classList.add('dragging');
+          });
+          slot.addEventListener('dragover', function(e) {
+            if (e.preventDefault) e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            return false;
+          });
+          slot.addEventListener('dragenter', function(e) {
+            this.classList.add('drag-over');
+          });
+          slot.addEventListener('dragleave', function(e) {
+            this.classList.remove('drag-over');
+          });
+          slot.addEventListener('drop', function(e) {
+            if (e.stopPropagation) e.stopPropagation();
+            if (dragSrcEl != this) {
+              const srcIndex = parseInt(dragSrcEl.dataset.index);
+              const dstIndex = parseInt(this.dataset.index);
+              [handArray[srcIndex], handArray[dstIndex]] = [handArray[dstIndex], handArray[srcIndex]];
+              setMyHand(handArray);
+              renderHand();
+            }
+            return false;
+          });
+          slot.addEventListener('dragend', function(e) {
+            this.classList.remove('dragging');
+            container.querySelectorAll('.piece-slot').forEach(s => s.classList.remove('drag-over'));
+          });
+        });
+      }
+
+      function enableTouchSort(container, handArray) {
+        let touchStartX, touchStartY, touchSrcIndex, touchDragging = false;
+        container.querySelectorAll('.piece-slot:not(.empty)').forEach(slot => {
+          slot.addEventListener('touchstart', function(e) {
+            touchSrcIndex = parseInt(this.dataset.index);
+            touchDragging = false;
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            this.classList.add('dragging');
+          });
+          slot.addEventListener('touchmove', function(e) {
+            if (!touchDragging && (Math.abs(e.touches[0].clientX - touchStartX) > 10 || Math.abs(e.touches[0].clientY - touchStartY) > 10)) {
+              touchDragging = true;
+            }
+            if (touchDragging) {
+              e.preventDefault();
+            }
+          });
+          slot.addEventListener('touchend', function(e) {
+            this.classList.remove('dragging');
+            if (touchDragging) {
+              const touch = e.changedTouches[0];
+              const target = document.elementFromPoint(touch.clientX, touch.clientY);
+              if (target && target.closest('.piece-slot')) {
+                const dstSlot = target.closest('.piece-slot');
+                const dstIndex = parseInt(dstSlot.dataset.index);
+                if (dstIndex != touchSrcIndex && dstIndex >= 0 && dstIndex < handArray.length) {
+                  [handArray[touchSrcIndex], handArray[dstIndex]] = [handArray[dstIndex], handArray[touchSrcIndex]];
+                  setMyHand(handArray);
+                  renderHand();
+                }
+              }
+            }
+            touchDragging = false;
+          });
+        });
+      }
+
       function renderHand(){
         DOM.handContainer.innerHTML='';
         const hand = getMyHand();
-        const isDiscardMode = hand.length === 9; // 9枚のときはドラッグ禁止
         for(let i=0;i<9;i++){
           const s=document.createElement('div'); s.className='piece-slot';
-          if(isDiscardMode) {
-            s.classList.add('no-drag');
-            s.setAttribute('draggable','false');
-          } else {
-            s.setAttribute('draggable','true');
-          }
-          s.dataset.index = i;
           if(i<hand.length){
+            s.dataset.index = i;
             const t=PIECE_TYPES[hand[i]];
             const img=document.createElement('img'); img.src=t.img; img.alt=t.name;
             s.appendChild(img);
-            s.addEventListener('click',(e) => { if(!s.classList.contains('dragging')) selectDiscard(i); });
-            if(!isDiscardMode){
-              // ドラッグイベント（8枚時のみ有効）
-              s.addEventListener('dragstart', handleDragStart);
-              s.addEventListener('dragover', handleDragOver);
-              s.addEventListener('drop', handleDrop);
-              s.addEventListener('dragend', handleDragEnd);
-              // タッチイベント
-              s.addEventListener('touchstart', handleTouchStart, {passive: false});
-              s.addEventListener('touchmove', handleTouchMove, {passive: false});
-              s.addEventListener('touchend', handleTouchEnd);
+            if(hand.length===9){
+              s.classList.add('no-drag');
+              s.setAttribute('draggable','false');
+            } else {
+              s.setAttribute('draggable','true');
             }
-          }else {
+            s.addEventListener('click',(e)=>{ if(!s.classList.contains('dragging')) selectDiscard(i); });
+          } else {
             s.classList.add('empty');
             s.setAttribute('draggable','false');
           }
           DOM.handContainer.appendChild(s);
         }
-      }
-
-      let dragSrcIndex = null;
-      function handleDragStart(e){ dragSrcIndex = parseInt(e.target.dataset.index); e.target.classList.add('dragging'); e.dataTransfer.setData('text/plain',''); }
-      function handleDragOver(e){ e.preventDefault(); }
-      function handleDrop(e){
-        e.preventDefault();
-        const target = e.target.closest('.piece-slot');
-        if(!target || target.classList.contains('empty') || dragSrcIndex===null) return;
-        const dstIndex = parseInt(target.dataset.index);
-        const hand = getMyHand();
-        if(dstIndex>=0 && dstIndex<hand.length && dragSrcIndex>=0 && dragSrcIndex<hand.length){
-          [hand[dragSrcIndex], hand[dstIndex]] = [hand[dstIndex], hand[dragSrcIndex]];
-          setMyHand(hand);
-          renderHand();
+        if(hand.length===8){
+          enableDragSort(DOM.handContainer, hand);
+          enableTouchSort(DOM.handContainer, hand);
         }
-        dragSrcIndex=null;
-      }
-      function handleDragEnd(e){ e.target.classList.remove('dragging'); dragSrcIndex=null; }
-
-      let touchDragging = false, touchStartX=0, touchStartY=0, touchSrcIndex=null;
-      function handleTouchStart(e){ 
-        if(e.target.closest('.piece-slot.empty')) return;
-        const s = e.target.closest('.piece-slot');
-        touchSrcIndex = parseInt(s.dataset.index);
-        touchDragging = false;
-        const t = e.touches[0];
-        touchStartX = t.clientX; touchStartY = t.clientY;
-        e.preventDefault();
-      }
-      function handleTouchMove(e){
-        if(touchSrcIndex===null) return;
-        const t = e.touches[0];
-        if(Math.abs(t.clientX-touchStartX)>10 || Math.abs(t.clientY-touchStartY)>10){
-          touchDragging = true;
-          e.target.closest('.piece-slot')?.classList.add('dragging');
-        }
-        e.preventDefault();
-      }
-      function handleTouchEnd(e){
-        const s = e.target.closest('.piece-slot');
-        if(!s || s.classList.contains('empty') || touchSrcIndex===null) { touchSrcIndex=null; return; }
-        const dstIndex = parseInt(s.dataset.index);
-        if(touchDragging && dstIndex>=0 && dstIndex<getMyHand().length && touchSrcIndex>=0 && touchSrcIndex<getMyHand().length && touchSrcIndex!==dstIndex){
-          const hand = getMyHand();
-          [hand[touchSrcIndex], hand[dstIndex]] = [hand[dstIndex], hand[touchSrcIndex]];
-          setMyHand(hand);
-          renderHand();
-        }
-        touchDragging = false;
-        touchSrcIndex = null;
-        document.querySelectorAll('.piece-slot').forEach(el=>el.classList.remove('dragging'));
       }
 
       function selectDiscard(index){
@@ -404,15 +408,13 @@
       }
 
       function updateCoinCounts() {
-        // 残高に応じてコインを自動両替（大きい単位を優先）
-        const pts = totalPoints;
+        let remaining = totalPoints;
         const newCounts = {100:0, 50:0, 10:0, 5:0};
-        let remaining = pts;
         newCounts[100] = Math.floor(remaining / 100); remaining %= 100;
         newCounts[50] = Math.floor(remaining / 50); remaining %= 50;
         newCounts[10] = Math.floor(remaining / 10); remaining %= 10;
         newCounts[5] = Math.floor(remaining / 5);
-        if(remaining > 0) newCounts[5]++; // 端数切り上げ
+        if(remaining > 0) newCounts[5]++;
         coinCounts = newCounts;
         renderCoins();
       }
@@ -493,7 +495,7 @@
           myTurn=true;
         }
         suppressedReachOptions.clear();
-        updateCoinCounts(); // コイン枚数を現在のtotalPointsに合わせて更新
+        updateCoinCounts();
       }
 
       function startPassGame(){
@@ -518,7 +520,7 @@
         updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); setMsg(`${players[0].name} の番です`);
         myTurn=true;
         suppressedReachOptions.clear();
-        updateCoinCounts(); // コイン更新
+        updateCoinCounts();
       }
       function passToNext(){
         if(currentMode!=='pass'||gameFinished) return;
