@@ -170,7 +170,10 @@
       <div class="room-area">
         <p><strong>QRコードで2人対戦</strong></p>
         <button class="btn" id="showQrBtn">📷 QRコードを表示</button>
-        <button class="btn" id="scanQrBtn">📥 QRを読み取った（URLを開いた）</button>
+        <div style="margin-top:8px;">
+          <input class="room-input" type="text" id="qrPeerIdInput" placeholder="相手のIDを入力" style="width:220px;">
+          <button class="btn" id="connectQrBtn">🔗 接続</button>
+        </div>
         <div id="qrConnectionStatus" style="margin-top:8px;">未接続</div>
         <button class="btn" id="startQrGameBtn" style="display:none;">▶️ ゲーム開始</button>
       </div>
@@ -201,6 +204,8 @@
   <div id="resultModal" style="display:none;"><div id="resultModalContent"></div></div>
   <div id="qrModal" style="display:none;">
     <div id="qrCodeContainer"></div>
+    <p style="color:white; margin-top:8px;">このIDを相手に伝えてください</p>
+    <p id="displayedPeerId" style="color:#ff0; font-size:1.2rem; font-weight:bold; margin:4px;"></p>
     <button class="btn" id="closeQrBtn" style="margin-top:12px; background:white;">閉じる</button>
   </div>
 
@@ -290,6 +295,8 @@
         startQrGameBtn: document.getElementById('startQrGameBtn'),
         qrModal: document.getElementById('qrModal'),
         qrCodeContainer: document.getElementById('qrCodeContainer'),
+        displayedPeerId: document.getElementById('displayedPeerId'),
+        qrPeerIdInput: document.getElementById('qrPeerIdInput'),
         onlineArea: document.getElementById('onlineArea'),
         qrArea: document.getElementById('qrArea'),
       };
@@ -426,21 +433,22 @@
         updateBox(); renderHand(); renderMyDiscard(); renderOpponent(); updateTurnDisplay();
       }
 
-      // ---- QR対戦 ----
+      // ---- QR対戦（手動ID入力方式） ----
       function showQR(){
         qrHost = true; isHost = true;
         peer = new Peer();
         peer.on('open', (id) => {
-          const url = `${window.location.href.split('?')[0]}?qr=${id}`;
           DOM.qrCodeContainer.innerHTML = '';
+          // QRにはピュアIDのみを含める（短い文字列）
           new QRCode(DOM.qrCodeContainer, {
-            text: url,
+            text: id,
             width: 280,
             height: 280,
             correctLevel: QRCode.CorrectLevel.L
           });
+          DOM.displayedPeerId.textContent = `ID: ${id}`;
           DOM.qrModal.style.display = 'flex';
-          DOM.qrConnectionStatus.textContent = '相手がQRを読み取るのを待っています...';
+          DOM.qrConnectionStatus.textContent = '相手がIDを入力して接続するのを待っています...';
         });
         peer.on('connection', (c) => {
           conn = c;
@@ -452,28 +460,21 @@
         });
       }
 
-      function checkQRParam(){
-        const urlParams = new URLSearchParams(window.location.search);
-        const peerId = urlParams.get('qr');
-        if (peerId) {
-          currentMode = 'qr';
-          document.getElementById('cpuModeBtn').classList.remove('active');
-          document.getElementById('onlineModeBtn').classList.remove('active');
-          document.getElementById('qrModeBtn').classList.add('active');
-          DOM.onlineArea.style.display = 'none';
-          DOM.qrArea.style.display = 'block';
-          DOM.startCpuGameBtn.style.display = 'none';
-
-          qrHost = false; isHost = false;
-          peer = new Peer();
-          peer.on('open', () => {
-            conn = peer.connect(peerId);
-            conn.on('data', data => handleOpponentMessage(data));
-            conn.on('open', () => {
-              DOM.qrConnectionStatus.textContent = '接続完了';
-            });
+      function connectToQrPeer(){
+        const peerId = DOM.qrPeerIdInput.value.trim();
+        if (!peerId) return;
+        qrHost = false; isHost = false;
+        peer = new Peer();
+        peer.on('open', () => {
+          conn = peer.connect(peerId);
+          conn.on('data', data => handleOpponentMessage(data));
+          conn.on('open', () => {
+            DOM.qrConnectionStatus.textContent = '接続完了';
           });
-        }
+          conn.on('error', () => {
+            DOM.qrConnectionStatus.textContent = '接続失敗。IDを確認してください';
+          });
+        });
       }
 
       function startQrGame(){
@@ -535,7 +536,7 @@
       document.getElementById('joinRoomBtn').addEventListener('click', joinRoom);
       DOM.startOnlineGameBtn.addEventListener('click', startOnlineGame);
       document.getElementById('showQrBtn').addEventListener('click', showQR);
-      document.getElementById('scanQrBtn').addEventListener('click', ()=>{ alert('相手のQRコードを純正カメラで読み取った後、表示されたURLを開いてください。'); });
+      document.getElementById('connectQrBtn').addEventListener('click', connectToQrPeer);
       document.getElementById('closeQrBtn').addEventListener('click', ()=>{ DOM.qrModal.style.display='none'; });
       DOM.startQrGameBtn.addEventListener('click', startQrGame);
       document.getElementById('boxImage').addEventListener('click', drawRequest);
@@ -548,11 +549,7 @@
       DOM.onlineArea.style.display='none';
       DOM.qrArea.style.display='none';
       DOM.totalPoints.textContent = totalPoints;
-
-      // QR URLパラメータチェック
-      checkQRParam();
     }
   </script>
 </body>
 </html>
-```
