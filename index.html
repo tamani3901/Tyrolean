@@ -59,9 +59,9 @@
     .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #b37b44; }
     .btn:disabled { opacity: 0.4; pointer-events: none; }
     .message { font-weight: bold; margin: 6px 0; color: #b45f2a; text-align: center; }
-    .opponent-area {
+    .info-area {
       background: #fef9f0; border-radius: 20px; padding: 12px; margin: 6px 0;
-      border: 2px solid #e6c89e;
+      border: 2px solid #e6c89e; width: 100%; max-width: 500px;
     }
     .discard-history { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
     .discard-chip {
@@ -81,13 +81,22 @@
       background: #fffbf2; border: 2px solid #e6c89e; border-radius: 16px;
       padding: 10px; margin: 8px 0; font-size: 0.75rem; max-width: 500px;
     }
-    #reachModal, #resultModal, #passModal {
+    #reachModal, #resultModal {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.7); display: flex; align-items: center;
       justify-content: center; z-index: 150; flex-direction: column;
     }
-    #reachModalContent, #resultModalContent, #passModalContent {
+    #reachModalContent, #resultModalContent {
       background: #fffbf2; border-radius: 20px; padding: 16px; max-width: 360px; width: 90%;
+      text-align: center;
+    }
+    #passModal {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: #1a1a1a; display: flex; align-items: center;
+      justify-content: center; z-index: 170; flex-direction: column;
+    }
+    #passModalContent {
+      background: #fffbf2; border-radius: 20px; padding: 24px; max-width: 360px; width: 90%;
       text-align: center;
     }
     .reach-yaku-item {
@@ -199,10 +208,17 @@
       </div>
     </div>
 
-    <div class="opponent-area" id="opponentArea" style="display:none;">
+    <!-- 相手情報エリア -->
+    <div class="info-area" id="opponentArea" style="display:none;">
       <div>🤝 相手の手札: <span id="opponentHandCount">0</span>枚</div>
       <div>捨て牌（赤枠の最後の1枚だけロン可能）:</div>
       <div class="discard-history" id="opponentDiscardHistory"></div>
+    </div>
+
+    <!-- 自分の捨て牌エリア -->
+    <div class="info-area" id="myDiscardArea">
+      <div>🗑️ 自分の捨て牌:</div>
+      <div class="discard-history" id="myDiscardHistory"></div>
     </div>
 
     <div class="container" id="gameArea">
@@ -306,6 +322,8 @@
         opponentArea: document.getElementById('opponentArea'),
         opponentHandCount: document.getElementById('opponentHandCount'),
         opponentDiscardHistory: document.getElementById('opponentDiscardHistory'),
+        myDiscardArea: document.getElementById('myDiscardArea'),
+        myDiscardHistory: document.getElementById('myDiscardHistory'),
         reachBadge: document.getElementById('reachBadge'),
         reachModal: document.getElementById('reachModal'),
         reachModalContent: document.getElementById('reachModalContent'),
@@ -376,7 +394,6 @@
         renderHand(); renderMyDiscard(); selectedDiscardIndex=null;
         setMsg(`${PIECE_TYPES[piece].name}を捨てました`);
         if(currentMode==='pass'){
-          // 対面パスモードでは捨てた後にリーチ確認
           if(!inReach && getMyHand().length===8){
             const opts=getReachOptions(getMyHand());
             if(opts.length>0) showReachOptions(opts);
@@ -392,21 +409,21 @@
       }
 
       function renderMyDiscard(){
-        const md = document.getElementById('myDiscardHistory');
-        if(!md) return;
-        md.innerHTML='';
+        DOM.myDiscardHistory.innerHTML='';
         getMyDiscard().forEach(id=>{
           const chip=document.createElement('div'); chip.className='discard-chip';
           const img=document.createElement('img'); img.src=PIECE_TYPES[id].img; img.style.width='100%';
-          chip.appendChild(img); md.appendChild(chip);
+          chip.appendChild(img); DOM.myDiscardHistory.appendChild(chip);
         });
       }
 
       function renderOpponents(){
         DOM.opponentDiscardHistory.innerHTML='';
         DOM.opponentArea.style.display='block';
+        let oppFound = false;
         players.forEach((p, idx) => {
           if(idx === myPlayerId) return;
+          oppFound = true;
           DOM.opponentHandCount.textContent = p.hand.length;
           p.discard.forEach((id, i) => {
             const chip = document.createElement('div'); chip.className = 'discard-chip';
@@ -419,6 +436,7 @@
             DOM.opponentDiscardHistory.appendChild(chip);
           });
         });
+        if(!oppFound) DOM.opponentArea.style.display='none';
       }
 
       function updateBox(){ DOM.boxRemaining.textContent=box.length; }
@@ -477,6 +495,7 @@
         myTurn = true;
         currentMode = 'pass';
         DOM.opponentArea.style.display = 'block';
+        DOM.myDiscardArea.style.display = 'block';
         DOM.passNextBtn.style.display = 'inline-block';
         DOM.reachBadge.style.display = 'none';
         DOM.currentPlayerDisplay.textContent = `現在: ${players[0].name} の番`;
@@ -490,7 +509,7 @@
         const nextIndex = (currentPlayerIndex + 1) % players.length;
         const nextName = players[nextIndex].name;
 
-        // 待機画面を表示
+        // 完全に不透明な待機画面
         DOM.passModalContent.innerHTML = `
           <h2>${currentName} の番が終わりました</h2>
           <p>端末を <strong>${nextName}</strong> に渡してください</p>
@@ -518,7 +537,7 @@
       function newCpuGame(){
         box=createBox(); players=[{name:'あなた', hand:box.splice(0,8), discard:[], points:totalPoints},{name:'CPU', hand:box.splice(0,8), discard:[], points:300}];
         myPlayerId=0; currentPlayerIndex=Math.floor(Math.random()*2); gameFinished=false; inReach=false; myTurn=(currentPlayerIndex===0);
-        DOM.opponentArea.style.display='block'; DOM.reachBadge.style.display='none';
+        DOM.opponentArea.style.display='block'; DOM.myDiscardArea.style.display='block'; DOM.reachBadge.style.display='none';
         updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); updateTurnDisplay();
         if(!myTurn) setTimeout(cpuTurn, 1000);
       }
@@ -539,7 +558,7 @@
         if(!conn||!conn.open) return; box=createBox(); const myHand=box.splice(0,8); const oppHand=box.splice(0,8);
         players=[ isHost?{name:'あなた',hand:myHand,discard:[],points:totalPoints}:{name:'相手',hand:oppHand,discard:[],points:300}, isHost?{name:'相手',hand:oppHand,discard:[],points:300}:{name:'あなた',hand:myHand,discard:[],points:totalPoints} ];
         myPlayerId=isHost?0:1; currentPlayerIndex=0; myTurn=isHost; gameFinished=false;
-        DOM.startOnlineGameBtn.style.display='none'; DOM.opponentArea.style.display='block';
+        DOM.startOnlineGameBtn.style.display='none'; DOM.opponentArea.style.display='block'; DOM.myDiscardArea.style.display='block';
         conn.send({type:'start', hand:isHost?oppHand:myHand, points:isHost?300:totalPoints});
         updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); updateTurnDisplay();
       }
@@ -555,14 +574,14 @@
         if(!conn||!conn.open) return; box=createBox(); const myHand=box.splice(0,8); const oppHand=box.splice(0,8);
         players=[ qrHost?{name:'あなた',hand:myHand,discard:[],points:totalPoints}:{name:'相手',hand:oppHand,discard:[],points:300}, qrHost?{name:'相手',hand:oppHand,discard:[],points:300}:{name:'あなた',hand:myHand,discard:[],points:totalPoints} ];
         myPlayerId=qrHost?0:1; currentPlayerIndex=0; myTurn=qrHost; gameFinished=false;
-        DOM.startQrGameBtn.style.display='none'; DOM.opponentArea.style.display='block';
+        DOM.startQrGameBtn.style.display='none'; DOM.opponentArea.style.display='block'; DOM.myDiscardArea.style.display='block';
         conn.send({type:'start', hand:qrHost?oppHand:myHand, points:qrHost?300:totalPoints});
         updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); updateTurnDisplay();
       }
 
       // ---- 共通 オンライン対戦 メッセージ処理 ----
       function handleOpponentMessage(data){
-        if(data.type==='start'){ if(isHost) return; box=createBox(); const oppHand=data.hand; const myHand=box.splice(0,8); players=[{name:'相手',hand:oppHand,discard:[],points:data.points},{name:'あなた',hand:myHand,discard:[],points:totalPoints}]; myPlayerId=1; currentPlayerIndex=0; myTurn=false; gameFinished=false; DOM.opponentArea.style.display='block'; updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); updateTurnDisplay(); }
+        if(data.type==='start'){ if(isHost) return; box=createBox(); const oppHand=data.hand; const myHand=box.splice(0,8); players=[{name:'相手',hand:oppHand,discard:[],points:data.points},{name:'あなた',hand:myHand,discard:[],points:totalPoints}]; myPlayerId=1; currentPlayerIndex=0; myTurn=false; gameFinished=false; DOM.opponentArea.style.display='block'; DOM.myDiscardArea.style.display='block'; updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); updateTurnDisplay(); }
         else if(data.type==='draw'){ const opp=players[1-myPlayerId]; opp.hand.push(data.pieceId); if(data.boxRemaining!==undefined) box=Array(data.boxRemaining).fill(0); updateBox(); renderOpponents(); myTurn=true; currentPlayerIndex=myPlayerId; updateTurnDisplay(); }
         else if(data.type==='discard'){ const opp=players[1-myPlayerId]; opp.hand=data.hand; opp.discard=data.discard; renderOpponents(); myTurn=true; currentPlayerIndex=myPlayerId; updateTurnDisplay(); }
         else if(data.type==='win'){ const yaku=data.yaku; const method=data.method; if(method==='ron'){ applyPoints(1-myPlayerId, yaku.pts, 'ron'); } else { applyPoints(1-myPlayerId, yaku.pts, 'tsumo'); } totalPoints=players[myPlayerId].points; DOM.totalPoints.textContent=totalPoints; renderOpponents(); showResult(false, yaku); gameFinished=true; myTurn=false; }
@@ -572,7 +591,6 @@
       function applyPoints(winnerIdx, yakuPts, method, fromIdx=null){
         players[winnerIdx].points+=yakuPts;
         if(currentMode==='pass'){
-          // 対面パス：他全員で分割
           const others = players.filter((_, i) => i !== winnerIdx);
           const n = others.length;
           if(n === 0) return;
@@ -631,6 +649,7 @@
         DOM.passArea.style.display = 'none';
         DOM.startCpuGameBtn.style.display = 'none';
         DOM.opponentArea.style.display = 'none';
+        DOM.myDiscardArea.style.display = 'block';
         DOM.passNextBtn.style.display = 'none';
         DOM.currentPlayerDisplay.textContent = '';
         document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
