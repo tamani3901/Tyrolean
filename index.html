@@ -7,7 +7,6 @@
   <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
-    /* 前回と同じスタイル（省略） */
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
     body { font-family: 'Hiragino Sans', sans-serif; background: #fdf6ec; color: #4a3b2f; display: flex; flex-direction: column; align-items: center; padding: 8px 8px 30px; min-height: 100vh; }
     h1 { font-size: 1.6rem; color: #8b5a2b; margin: 6px 0 2px; }
@@ -197,7 +196,6 @@
       const INITIAL_COIN_COUNTS = {100:1, 50:2, 10:6, 5:8};
       let coinCounts = {...INITIAL_COIN_COUNTS};
       let lastWinnerIndex = null;
-      // 各プレイヤーのリーチ状態を管理（相手のリーチ表示用）
       let playerReachState = [];
 
       const DOM = {
@@ -278,43 +276,21 @@
       function getMyDiscard(){ return players[myPlayerId]?.discard || []; }
 
       function updateReachDisplay(){
-        // 自分のリーチバッジ
-        if(inReach) DOM.reachBadge.style.display = 'block';
-        else DOM.reachBadge.style.display = 'none';
-        // 相手のリーチバッジ
+        if(inReach) DOM.reachBadge.style.display = 'block'; else DOM.reachBadge.style.display = 'none';
         let anyOpponentReach = false;
-        players.forEach((p, idx) => {
-          if(idx === myPlayerId) return;
-          if(playerReachState[idx]) anyOpponentReach = true;
-        });
-        if(anyOpponentReach) DOM.opponentReachBadge.style.display = 'inline';
-        else DOM.opponentReachBadge.style.display = 'none';
+        players.forEach((p, idx) => { if(idx === myPlayerId) return; if(playerReachState[idx]) anyOpponentReach = true; });
+        DOM.opponentReachBadge.style.display = anyOpponentReach ? 'inline' : 'none';
       }
 
       function enableDragSort(container, handArray) {
         let dragSrcEl = null;
         container.querySelectorAll('.piece-slot:not(.empty)').forEach(slot => {
           slot.setAttribute('draggable', 'true');
-          slot.addEventListener('dragstart', function(e) {
-            dragSrcEl = this;
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/html', this.innerHTML);
-            this.classList.add('dragging');
-          });
+          slot.addEventListener('dragstart', function(e) { dragSrcEl = this; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/html', this.innerHTML); this.classList.add('dragging'); });
           slot.addEventListener('dragover', function(e) { if (e.preventDefault) e.preventDefault(); e.dataTransfer.dropEffect = 'move'; return false; });
           slot.addEventListener('dragenter', function(e) { this.classList.add('drag-over'); });
           slot.addEventListener('dragleave', function(e) { this.classList.remove('drag-over'); });
-          slot.addEventListener('drop', function(e) {
-            if (e.stopPropagation) e.stopPropagation();
-            if (dragSrcEl != this) {
-              const srcIndex = parseInt(dragSrcEl.dataset.index);
-              const dstIndex = parseInt(this.dataset.index);
-              [handArray[srcIndex], handArray[dstIndex]] = [handArray[dstIndex], handArray[srcIndex]];
-              setMyHand(handArray);
-              renderHand();
-            }
-            return false;
-          });
+          slot.addEventListener('drop', function(e) { if (e.stopPropagation) e.stopPropagation(); if (dragSrcEl != this) { const srcIndex = parseInt(dragSrcEl.dataset.index); const dstIndex = parseInt(this.dataset.index); [handArray[srcIndex], handArray[dstIndex]] = [handArray[dstIndex], handArray[srcIndex]]; setMyHand(handArray); renderHand(); } return false; });
           slot.addEventListener('dragend', function(e) { this.classList.remove('dragging'); container.querySelectorAll('.piece-slot').forEach(s => s.classList.remove('drag-over')); });
         });
       }
@@ -322,32 +298,9 @@
       function enableTouchSort(container, handArray) {
         let touchStartX, touchStartY, touchSrcIndex, touchDragging = false;
         container.querySelectorAll('.piece-slot:not(.empty)').forEach(slot => {
-          slot.addEventListener('touchstart', function(e) {
-            touchSrcIndex = parseInt(this.dataset.index); touchDragging = false;
-            touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY;
-            this.classList.add('dragging');
-          });
-          slot.addEventListener('touchmove', function(e) {
-            if (!touchDragging && (Math.abs(e.touches[0].clientX - touchStartX) > 10 || Math.abs(e.touches[0].clientY - touchStartY) > 10)) touchDragging = true;
-            if (touchDragging) e.preventDefault();
-          });
-          slot.addEventListener('touchend', function(e) {
-            this.classList.remove('dragging');
-            if (touchDragging) {
-              const touch = e.changedTouches[0];
-              const target = document.elementFromPoint(touch.clientX, touch.clientY);
-              if (target && target.closest('.piece-slot')) {
-                const dstSlot = target.closest('.piece-slot');
-                const dstIndex = parseInt(dstSlot.dataset.index);
-                if (dstIndex != touchSrcIndex && dstIndex >= 0 && dstIndex < handArray.length) {
-                  [handArray[touchSrcIndex], handArray[dstIndex]] = [handArray[dstIndex], handArray[touchSrcIndex]];
-                  setMyHand(handArray);
-                  renderHand();
-                }
-              }
-            }
-            touchDragging = false;
-          });
+          slot.addEventListener('touchstart', function(e) { touchSrcIndex = parseInt(this.dataset.index); touchDragging = false; touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; this.classList.add('dragging'); });
+          slot.addEventListener('touchmove', function(e) { if (!touchDragging && (Math.abs(e.touches[0].clientX - touchStartX) > 10 || Math.abs(e.touches[0].clientY - touchStartY) > 10)) touchDragging = true; if (touchDragging) e.preventDefault(); });
+          slot.addEventListener('touchend', function(e) { this.classList.remove('dragging'); if (touchDragging) { const touch = e.changedTouches[0]; const target = document.elementFromPoint(touch.clientX, touch.clientY); if (target && target.closest('.piece-slot')) { const dstSlot = target.closest('.piece-slot'); const dstIndex = parseInt(dstSlot.dataset.index); if (dstIndex != touchSrcIndex && dstIndex >= 0 && dstIndex < handArray.length) { [handArray[touchSrcIndex], handArray[dstIndex]] = [handArray[dstIndex], handArray[touchSrcIndex]]; setMyHand(handArray); renderHand(); } } } touchDragging = false; });
         });
       }
 
@@ -370,13 +323,7 @@
         if(hand.length===8){ enableDragSort(DOM.handContainer, hand); enableTouchSort(DOM.handContainer, hand); }
       }
 
-      function selectDiscard(index){
-        if(!isMyTurn() || getMyHand().length!==9) return;
-        DOM.handContainer.querySelectorAll('.piece-slot').forEach(s=>s.classList.remove('selected'));
-        selectedDiscardIndex=index;
-        DOM.handContainer.querySelectorAll('.piece-slot')[index].classList.add('selected');
-        setMsg(`「${PIECE_TYPES[getMyHand()[index]].name}」を捨てますか？ もう一度タップで決定`, true);
-      }
+      function selectDiscard(index){ if(!isMyTurn() || getMyHand().length!==9) return; DOM.handContainer.querySelectorAll('.piece-slot').forEach(s=>s.classList.remove('selected')); selectedDiscardIndex=index; DOM.handContainer.querySelectorAll('.piece-slot')[index].classList.add('selected'); setMsg(`「${PIECE_TYPES[getMyHand()[index]].name}」を捨てますか？ もう一度タップで決定`, true); }
 
       function confirmDiscard(){
         if(selectedDiscardIndex===null || getMyHand().length!==9) return;
@@ -392,8 +339,7 @@
       function renderMyDiscard(){ DOM.myDiscardHistory.innerHTML=''; getMyDiscard().forEach(id=>{ const chip=document.createElement('div'); chip.className='discard-chip'; const img=document.createElement('img'); img.src=PIECE_TYPES[id].img; img.style.width='100%'; chip.appendChild(img); DOM.myDiscardHistory.appendChild(chip); }); }
 
       function renderOpponents(){
-        DOM.opponentDiscardHistory.innerHTML=''; DOM.opponentArea.style.display='block';
-        let oppFound = false;
+        DOM.opponentDiscardHistory.innerHTML=''; DOM.opponentArea.style.display='block'; let oppFound = false;
         players.forEach((p, idx) => { if(idx === myPlayerId) return; oppFound = true; DOM.opponentHandCount.textContent = p.hand.length;
           p.discard.forEach((id, i) => { const chip = document.createElement('div'); chip.className = 'discard-chip'; const img = document.createElement('img'); img.src = PIECE_TYPES[id].img; img.style.width = '100%';
             if(i === p.discard.length - 1) { chip.classList.add('latest'); chip.addEventListener('click', () => ronRequest(id, idx)); } chip.appendChild(img); DOM.opponentDiscardHistory.appendChild(chip); }); });
@@ -494,7 +440,6 @@
           players[1].hand.splice(players[1].hand.indexOf(discardId),1);
           players[1].discard.push(discardId);
           setMsg(`CPUが${PIECE_TYPES[discardId].name}を捨てました`);
-          // CPUがリーチ可能ならランダムでリーチする
           if(!playerReachState[1] && players[1].hand.length===8){
             const opts = getReachOptions(players[1].hand);
             if(opts.length > 0 && Math.random() < 0.6) {
