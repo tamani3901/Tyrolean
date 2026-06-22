@@ -154,7 +154,8 @@
         ・8枚スタート→引いて9枚→不要牌を捨てる<br>
         ・3枚セット×3組でアガリ<br>
         ・相手の最後の捨て牌でロン可能<br>
-        ・リーチあり（捨てた後に選択可能）
+        ・リーチあり（捨てた後に選択可能）<br>
+        ・誰かのポイントが0になるまでラウンドを繰り返す
       </details>
     </div>
 
@@ -229,7 +230,7 @@
         <div>残り <span id="boxRemaining">84</span> 枚</div>
       </div>
       <div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap;">
-        <button class="btn" id="resetPointsBtn">💰 ポイントリセット</button>
+        <button class="btn" id="gameResetBtn">🔄 ゲームリセット</button>
         <button class="btn" id="passNextBtn" style="display:none;">👉 次の人へ渡す</button>
       </div>
       <div class="message" id="messageArea"></div>
@@ -346,6 +347,7 @@
         qrArea: document.getElementById('qrArea'),
         passArea: document.getElementById('passArea'),
         passPlayerCount: document.getElementById('passPlayerCount'),
+        gameResetBtn: document.getElementById('gameResetBtn'),
       };
 
       function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]; } return a; }
@@ -473,6 +475,49 @@
         } else setMsg('その牌ではアガれません', false);
       }
 
+      // ---- ゲームリセット（ポイントを300に戻して新規開始） ----
+      function fullReset(){
+        if(currentMode==='cpu'){
+          totalPoints=300;
+          DOM.totalPoints.textContent=300;
+          newCpuGame(true);
+        } else if(currentMode==='pass'){
+          players.forEach(p => p.points = 300);
+          totalPoints = 300;
+          DOM.totalPoints.textContent = 300;
+          startNewRoundPass(true);
+        } else {
+          // オンラインは手動リセットのみ
+          totalPoints=300; DOM.totalPoints.textContent=300;
+          if(players[myPlayerId]) players[myPlayerId].points=300;
+        }
+      }
+
+      // ---- 次のラウンド開始（ポイントを保持） ----
+      function startNewRound(winnerIndex){
+        // 共通：箱と手札・捨て牌をリセット、ターンは勝者から
+        box = createBox();
+        players.forEach(p => {
+          p.hand = box.splice(0, 8);
+          p.discard = [];
+        });
+        currentPlayerIndex = winnerIndex;
+        myPlayerId = (currentMode==='pass' || currentMode==='cpu') ? winnerIndex : myPlayerId; // CPU/パスではwinnerが次の親
+        gameFinished = false;
+        inReach = false;
+        DOM.reachBadge.style.display = 'none';
+        updateBox(); renderHand(); renderMyDiscard(); renderOpponents();
+        if(currentMode==='cpu'){
+          myTurn = (currentPlayerIndex === 0);
+          updateTurnDisplay();
+          if(!myTurn) setTimeout(cpuTurn, 1000);
+        } else if(currentMode==='pass'){
+          DOM.currentPlayerDisplay.textContent = `現在: ${players[currentPlayerIndex].name} の番`;
+          setMsg(`${players[currentPlayerIndex].name} の番です`);
+          myTurn = true;
+        }
+      }
+
       // ---- 対面パスモード ----
       function startPassGame(){
         const count = parseInt(DOM.passPlayerCount.value);
@@ -503,13 +548,30 @@
         setMsg(`${players[0].name} の番です`);
       }
 
+      function startNewRoundPass(fullResetPoints = false){
+        if(fullResetPoints) players.forEach(p => p.points = 300);
+        box = createBox();
+        players.forEach(p => {
+          p.hand = box.splice(0, 8);
+          p.discard = [];
+        });
+        currentPlayerIndex = 0; // 先頭から再開
+        myPlayerId = 0;
+        gameFinished = false;
+        inReach = false;
+        DOM.reachBadge.style.display = 'none';
+        DOM.currentPlayerDisplay.textContent = `現在: ${players[0].name} の番`;
+        updateBox(); renderHand(); renderMyDiscard(); renderOpponents();
+        setMsg(`${players[0].name} の番です`);
+        myTurn = true;
+      }
+
       function passToNext(){
         if(currentMode !== 'pass' || gameFinished) return;
         const currentName = players[currentPlayerIndex].name;
         const nextIndex = (currentPlayerIndex + 1) % players.length;
         const nextName = players[nextIndex].name;
 
-        // 完全に不透明な待機画面
         DOM.passModalContent.innerHTML = `
           <h2>${currentName} の番が終わりました</h2>
           <p>端末を <strong>${nextName}</strong> に渡してください</p>
@@ -534,8 +596,13 @@
       }
 
       // ---- CPU対戦 ----
-      function newCpuGame(){
-        box=createBox(); players=[{name:'あなた', hand:box.splice(0,8), discard:[], points:totalPoints},{name:'CPU', hand:box.splice(0,8), discard:[], points:300}];
+      function newCpuGame(fullReset = false){
+        if(fullReset){
+          totalPoints=300;
+          DOM.totalPoints.textContent=300;
+        }
+        box=createBox();
+        players=[{name:'あなた', hand:box.splice(0,8), discard:[], points: totalPoints},{name:'CPU', hand:box.splice(0,8), discard:[], points:300}];
         myPlayerId=0; currentPlayerIndex=Math.floor(Math.random()*2); gameFinished=false; inReach=false; myTurn=(currentPlayerIndex===0);
         DOM.opponentArea.style.display='block'; DOM.myDiscardArea.style.display='block'; DOM.reachBadge.style.display='none';
         updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); updateTurnDisplay();
@@ -546,7 +613,7 @@
         if(players[1].hand.length===9){ const yaku=checkYaku(players[1].hand); if(yaku){ cpuWin(yaku); return; } const counts=getCounts(players[1].hand); let min=10, cands=[]; counts.forEach((c,i)=>{ if(c>0&&c<min){ min=c; cands=[i]; } else if(c===min) cands.push(i); }); const discardId=cands[Math.floor(Math.random()*cands.length)]; players[1].hand.splice(players[1].hand.indexOf(discardId),1); players[1].discard.push(discardId); setMsg(`CPUが${PIECE_TYPES[discardId].name}を捨てました`); renderOpponents(); } nextCpuTurn();
       }
       function nextCpuTurn(){ if(gameFinished) return; currentPlayerIndex=(currentPlayerIndex+1)%2; myTurn=(currentPlayerIndex===0); renderOpponents(); updateTurnDisplay(); if(!myTurn) setTimeout(cpuTurn, 1000); else if(!inReach && getMyHand().length===8){ const opts=getReachOptions(getMyHand()); if(opts.length>0) showReachOptions(opts); } }
-      function cpuWin(yaku){ gameFinished=true; inReach=false; players[1].points+=yaku.pts; players[0].points-=yaku.pts; totalPoints=players[0].points; DOM.totalPoints.textContent=totalPoints; renderOpponents(); showResult(false, yaku); }
+      function cpuWin(yaku){ gameFinished=true; inReach=false; applyPoints(1, yaku.pts, 'tsumo'); totalPoints=players[0].points; DOM.totalPoints.textContent=totalPoints; renderOpponents(); showResult(false, yaku); }
 
       // ---- 合言葉対戦 ----
       function createRoom(){
@@ -625,9 +692,32 @@
         const cancelBtn=document.createElement('button'); cancelBtn.className='btn'; cancelBtn.textContent='いいえ'; cancelBtn.addEventListener('click',()=>{ DOM.reachModal.style.display='none'; }); DOM.reachModalContent.appendChild(cancelBtn); DOM.reachModal.style.display='flex';
       }
       function showResult(winner, yaku){
+        const myPoints = players[myPlayerId].points;
         const msg = winner ? `🎉 ${players[myPlayerId].name}の勝ち！ ${yaku.name} (+${yaku.pts}pt)` : `😢 ${players[myPlayerId].name}の負け。 ${yaku.name} (-${yaku.pts}pt)`;
-        DOM.resultModalContent.innerHTML = `<h2>${msg}</h2><button class="btn" id="resultOkBtn">OK</button>`; DOM.resultModal.style.display='flex';
-        document.getElementById('resultOkBtn').addEventListener('click', ()=>{ DOM.resultModal.style.display='none'; });
+        let continueBtn = '';
+        if(currentMode==='cpu' || currentMode==='pass'){
+          const anyoneZero = players.some(p => p.points <= 0);
+          if(anyoneZero){
+            const loser = players.find(p => p.points <= 0);
+            continueBtn = `<p>${loser.name}のポイントが0になりました。ゲーム終了！</p>`;
+          } else {
+            continueBtn = `<button class="btn" id="continueBtn">次のラウンドへ</button>`;
+          }
+        }
+        DOM.resultModalContent.innerHTML = `<h2>${msg}</h2><p>現在のポイント: ${players.map(p=>p.name+': '+p.points+'pt').join(', ')}</p>${continueBtn}`;
+        DOM.resultModal.style.display='flex';
+        if(document.getElementById('continueBtn')){
+          document.getElementById('continueBtn').addEventListener('click', ()=>{
+            DOM.resultModal.style.display='none';
+            const winnerIdx = players.findIndex(p => p.points === Math.max(...players.map(p=>p.points))); // 勝者から次のラウンド開始
+            startNewRound(winner ? myPlayerId : (currentMode==='cpu'?1:0)); // 勝者からスタート
+          });
+        } else {
+          // ゲーム終了
+          setTimeout(() => {
+            DOM.resultModal.style.display='none';
+          }, 2000);
+        }
       }
 
       // 人数変更時の名前入力欄更新
@@ -666,7 +756,7 @@
       document.getElementById('passModeBtn').addEventListener('click', ()=>switchMode('pass'));
 
       // イベント
-      DOM.startCpuGameBtn.addEventListener('click', newCpuGame);
+      DOM.startCpuGameBtn.addEventListener('click', ()=>newCpuGame(true));
       document.getElementById('createRoomBtn').addEventListener('click', createRoom);
       document.getElementById('joinRoomBtn').addEventListener('click', joinRoom);
       DOM.startOnlineGameBtn.addEventListener('click', startOnlineGame);
@@ -677,7 +767,7 @@
       document.getElementById('startPassGameBtn').addEventListener('click', startPassGame);
       DOM.passNextBtn.addEventListener('click', passToNext);
       document.getElementById('boxImage').addEventListener('click', drawRequest);
-      document.getElementById('resetPointsBtn').addEventListener('click',()=>{ totalPoints=300; DOM.totalPoints.textContent=300; if(players[myPlayerId]) players[myPlayerId].points=300; });
+      DOM.gameResetBtn.addEventListener('click', fullReset);
 
       const discardBtn = document.createElement('button'); discardBtn.className='btn'; discardBtn.textContent='🗑️ 選択した牌を捨てる'; discardBtn.addEventListener('click', confirmDiscard);
       document.getElementById('gameArea').insertBefore(discardBtn, document.getElementById('messageArea'));
