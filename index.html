@@ -232,21 +232,12 @@
         gameResetBtn: document.getElementById('gameResetBtn'),
       };
 
-      // 設定モーダル
       document.getElementById('settingsBtn').addEventListener('click', () => {
-        DOM.settingsModalContent.innerHTML = `
-          <h3>⚙️ 設定</h3>
-          <div style="margin:10px 0;">
-            <label><input type="checkbox" id="settingsSoundCheck" ${soundEnabled ? 'checked' : ''}> 効果音を有効にする</label>
-          </div>
-          <button class="btn" id="resetReachSuppressBtn">🔄 リーチ表示をリセット</button>
-          <p style="font-size:0.8rem; color:#8b5a2b; margin-top:8px;">リセットすると、非表示にしたリーチの選択肢が再表示されます。</p>
-          <button class="btn" id="closeSettingsBtn" style="margin-top:8px;">閉じる</button>
-        `;
-        DOM.settingsModal.style.display = 'flex';
-        document.getElementById('settingsSoundCheck').addEventListener('change', (e) => { soundEnabled = e.target.checked; });
-        document.getElementById('resetReachSuppressBtn').addEventListener('click', () => { suppressedReachOptions.clear(); setMsg('リーチ表示をリセットしました'); DOM.settingsModal.style.display = 'none'; });
-        document.getElementById('closeSettingsBtn').addEventListener('click', () => { DOM.settingsModal.style.display = 'none'; });
+        DOM.settingsModalContent.innerHTML = `<h3>⚙️ 設定</h3><div style="margin:10px 0;"><label><input type="checkbox" id="settingsSoundCheck" ${soundEnabled?'checked':''}> 効果音を有効にする</label></div><button class="btn" id="resetReachSuppressBtn">🔄 リーチ表示をリセット</button><p style="font-size:0.8rem; color:#8b5a2b; margin-top:8px;">リセットすると、非表示にしたリーチの選択肢が再表示されます。</p><button class="btn" id="closeSettingsBtn" style="margin-top:8px;">閉じる</button>`;
+        DOM.settingsModal.style.display='flex';
+        document.getElementById('settingsSoundCheck').addEventListener('change',e=>{soundEnabled=e.target.checked;});
+        document.getElementById('resetReachSuppressBtn').addEventListener('click',()=>{suppressedReachOptions.clear();setMsg('リーチ表示をリセットしました');DOM.settingsModal.style.display='none';});
+        document.getElementById('closeSettingsBtn').addEventListener('click',()=>{DOM.settingsModal.style.display='none';});
       });
 
       function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]; } return a; }
@@ -276,7 +267,7 @@
       function getMyDiscard(){ return players[myPlayerId]?.discard || []; }
 
       function updateReachDisplay(){
-        if(inReach) DOM.reachBadge.style.display = 'block'; else DOM.reachBadge.style.display = 'none';
+        DOM.reachBadge.style.display = inReach ? 'block' : 'none';
         let anyOpponentReach = false;
         players.forEach((p, idx) => { if(idx === myPlayerId) return; if(playerReachState[idx]) anyOpponentReach = true; });
         DOM.opponentReachBadge.style.display = anyOpponentReach ? 'inline' : 'none';
@@ -404,8 +395,7 @@
         DOM.reachBadge.style.display='none'; DOM.opponentReachBadge.style.display='none';
         DOM.currentPlayerDisplay.textContent=`現在: ${players[0].name} の番`;
         updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); setMsg(`${players[0].name} の番です`);
-        suppressedReachOptions.clear();
-        totalPoints=300; coinCounts = {...INITIAL_COIN_COUNTS}; renderCoins();
+        suppressedReachOptions.clear(); totalPoints=300; coinCounts = {...INITIAL_COIN_COUNTS}; renderCoins();
       }
       function startNewRoundPass(fullResetPoints=false){ if(fullResetPoints) players.forEach(p=>p.points=300); box=createBox(); players.forEach(p=>{ p.hand=box.splice(0,8); p.discard=[]; }); playerReachState = new Array(players.length).fill(false); currentPlayerIndex=0; myPlayerId=0; gameFinished=false; inReach=false; DOM.reachBadge.style.display='none'; DOM.opponentReachBadge.style.display='none'; DOM.currentPlayerDisplay.textContent=`現在: ${players[0].name} の番`; updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); setMsg(`${players[0].name} の番です`); myTurn=true; suppressedReachOptions.clear(); updateCoinCounts(); }
       function passToNext(){ if(currentMode!=='pass'||gameFinished) return; const nextIndex=(currentPlayerIndex+1)%players.length; DOM.passModalContent.innerHTML=`<h2>${players[currentPlayerIndex].name} の番が終わりました</h2><p>端末を <strong>${players[nextIndex].name}</strong> に渡してください</p><button class="btn" id="passOkBtn">OK（${players[nextIndex].name} の番を開始）</button>`; DOM.passModal.style.display='flex'; document.getElementById('passOkBtn').addEventListener('click',()=>{ DOM.passModal.style.display='none'; currentPlayerIndex=nextIndex; myPlayerId=nextIndex; myTurn=true; inReach=false; DOM.reachBadge.style.display='none'; updateReachDisplay(); DOM.currentPlayerDisplay.textContent=`現在: ${players[nextIndex].name} の番`; renderHand(); renderMyDiscard(); renderOpponents(); updateBox(); setMsg(`${players[nextIndex].name} の番です`); }); }
@@ -450,6 +440,7 @@
           }
           renderOpponents();
         }
+        // ---- ここが重要: CPUのターン終了後、必ずnextCpuTurnを呼ぶ ----
         nextCpuTurn();
       }
 
@@ -468,7 +459,7 @@
 
       function cpuWin(yaku){
         gameFinished=true; inReach=false;
-        lastWinnerIndex = 1;
+        lastWinnerIndex = 1; // ★ CPUが勝ったので次の親はCPU
         playerReachState = [false, false];
         applyPoints(1,yaku.pts,'self');
         totalPoints=players[0].points;
@@ -481,8 +472,7 @@
       function startOnlineGame(){
         if(!conn||!conn.open) return; box=createBox(); const myHand=box.splice(0,8); const oppHand=box.splice(0,8);
         players=[ isHost?{name:'あなた',hand:myHand,discard:[],points:300}:{name:'相手',hand:oppHand,discard:[],points:300}, isHost?{name:'相手',hand:oppHand,discard:[],points:300}:{name:'あなた',hand:myHand,discard:[],points:300} ];
-        playerReachState = [false, false];
-        myPlayerId=isHost?0:1; currentPlayerIndex=0; myTurn=isHost; gameFinished=false; lastWinnerIndex=null;
+        playerReachState = [false, false]; myPlayerId=isHost?0:1; currentPlayerIndex=0; myTurn=isHost; gameFinished=false; lastWinnerIndex=null;
         totalPoints = 300; coinCounts = {...INITIAL_COIN_COUNTS}; renderCoins();
         DOM.startOnlineGameBtn.style.display='none'; DOM.opponentArea.style.display='block'; DOM.myDiscardArea.style.display='block';
         DOM.reachBadge.style.display='none'; DOM.opponentReachBadge.style.display='none';
@@ -495,8 +485,7 @@
       function startQrGame(){
         if(!conn||!conn.open) return; box=createBox(); const myHand=box.splice(0,8); const oppHand=box.splice(0,8);
         players=[ qrHost?{name:'あなた',hand:myHand,discard:[],points:300}:{name:'相手',hand:oppHand,discard:[],points:300}, qrHost?{name:'相手',hand:oppHand,discard:[],points:300}:{name:'あなた',hand:myHand,discard:[],points:300} ];
-        playerReachState = [false, false];
-        myPlayerId=qrHost?0:1; currentPlayerIndex=0; myTurn=qrHost; gameFinished=false; lastWinnerIndex=null;
+        playerReachState = [false, false]; myPlayerId=qrHost?0:1; currentPlayerIndex=0; myTurn=qrHost; gameFinished=false; lastWinnerIndex=null;
         totalPoints = 300; coinCounts = {...INITIAL_COIN_COUNTS}; renderCoins();
         DOM.startQrGameBtn.style.display='none'; DOM.opponentArea.style.display='block'; DOM.myDiscardArea.style.display='block';
         DOM.reachBadge.style.display='none'; DOM.opponentReachBadge.style.display='none';
@@ -522,8 +511,7 @@
 
       function winGame(yaku, method, fromIdx=null){
         gameFinished=true; inReach=false; DOM.reachBadge.style.display='none';
-        playerReachState = new Array(players.length).fill(false);
-        updateReachDisplay();
+        playerReachState = new Array(players.length).fill(false); updateReachDisplay();
         lastWinnerIndex = myPlayerId;
         applyPoints(myPlayerId, yaku.pts, method, fromIdx);
         renderOpponents(); showResult(true, yaku);
