@@ -30,6 +30,11 @@
     .piece-slot.dragging { opacity:0.4; transform:scale(1.05); z-index:10; }
     .piece-slot.drag-over { border-color:#f0c27a; box-shadow:0 0 8px #f0c27a; }
     .piece-slot.no-drag { cursor:pointer; }
+    /* 色枠 */
+    .piece-slot.color-brown { border-color: #8B4513; }
+    .piece-slot.color-blue { border-color: #4169E1; }
+    .piece-slot.color-white { border-color: #DDDDDD; }
+    .piece-slot.color-skin { border-color: #DEB887; }
     .box-section { display:flex; align-items:center; justify-content:center; gap:12px; margin:10px 0; }
     .box-image { width:80px; height:80px; background:#d9b382; border-radius:16px; border:4px solid #b78b5a; cursor:pointer; overflow:hidden; background-size:cover; }
     .box-image img { width:100%; height:100%; object-fit:cover; }
@@ -189,6 +194,14 @@
         { name:'バラエティ', pts:30, check:c=>{ const non=[1,3,4,5,6,7,8,9,11]; return non.every(i=>c[i]===1) && c[0]===0&&c[2]===0&&c[10]===0; }}
       ];
 
+      // 色のマッピング
+      const COLOR_CLASS = {
+        brown: 'color-brown',
+        blue: 'color-blue',
+        white: 'color-white',
+        skin: 'color-skin'
+      };
+
       let box=[], players=[], currentPlayerIndex=0, totalPoints=300, gameFinished=false;
       let currentMode='cpu', myPlayerId=0, peer=null, conn=null, isHost=false, qrHost=false;
       let selectedDiscardIndex=null, inReach=false, reachNeedPieceIds=[];
@@ -305,6 +318,8 @@
             const t=PIECE_TYPES[hand[i]];
             const img=document.createElement('img'); img.src=t.img; img.alt=t.name;
             s.appendChild(img);
+            // 色クラスを追加
+            if(COLOR_CLASS[t.color]) s.classList.add(COLOR_CLASS[t.color]);
             if(hand.length===9){ s.classList.add('no-drag'); s.setAttribute('draggable','false'); }
             else { s.setAttribute('draggable','true'); }
             s.addEventListener('click',(e)=>{ if(!s.classList.contains('dragging')) selectDiscard(i); });
@@ -370,7 +385,6 @@
       function startNewRound(winnerIndex){
         box=createBox(); players.forEach(p=>{ p.hand=box.splice(0,8); p.discard=[]; });
         playerReachState = new Array(players.length).fill(false);
-        // ★ myPlayerId は常に 0（あなた）で固定 ★
         myPlayerId = 0;
         currentPlayerIndex=winnerIndex;
         gameFinished=false; inReach=false; DOM.reachBadge.style.display='none';
