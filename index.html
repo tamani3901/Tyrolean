@@ -388,7 +388,6 @@
       function transferCoins(fromPlayer, toPlayer, amount) {
         let remaining = amount;
         const take = {100:0, 50:0, 10:0, 5:0};
-        // 大きい硬貨から優先して取る
         for (let denom of [100,50,10,5]) {
           while (remaining >= denom && fromPlayer.coinCounts[denom] > 0) {
             remaining -= denom;
@@ -396,7 +395,6 @@
             take[denom]++;
           }
         }
-        // 端数が出た場合、より小さい硬貨で調整（理論上5の倍数なら残らない）
         if (remaining > 0) {
           for (let denom of [10,5]) {
             while (remaining >= denom && fromPlayer.coinCounts[denom] > 0) {
@@ -406,7 +404,6 @@
             }
           }
         }
-        // 取った硬貨を相手に渡す
         for (let denom of [100,50,10,5]) {
           toPlayer.coinCounts[denom] += take[denom];
         }
@@ -493,8 +490,10 @@
 
       function newCpuGame(fullReset=false){
         if(fullReset){
-          players.forEach(p=>{ p.points=300; p.coinCounts = cloneCoinCounts(INITIAL_COIN_COUNTS); });
-          renderCoins();
+          if(players.length>0) {
+            players.forEach(p=>{ p.points=300; p.coinCounts = cloneCoinCounts(INITIAL_COIN_COUNTS); });
+            renderCoins();
+          }
         }
         box=createBox();
         players=[{name:'あなた',hand:box.splice(0,8),discard:[],points:300, coinCounts: cloneCoinCounts(INITIAL_COIN_COUNTS)},{name:'CPU',hand:box.splice(0,8),discard:[],points:300, coinCounts: cloneCoinCounts(INITIAL_COIN_COUNTS)}];
@@ -521,7 +520,7 @@
                   isHost?{name:'相手',hand:oppHand,discard:[],points:300, coinCounts: cloneCoinCounts(INITIAL_COIN_COUNTS)}:{name:'あなた',hand:myHand,discard:[],points:300, coinCounts: cloneCoinCounts(INITIAL_COIN_COUNTS)} ];
         myPlayerId=isHost?0:1; currentPlayerIndex=0; gameFinished=false;
         DOM.startOnlineGameBtn.style.display='none'; DOM.opponentArea.style.display='block'; DOM.myDiscardArea.style.display='block';
-        conn.send({type:'start', hand:isHost?oppHand:myHand, points:300});
+        conn.send({type:'start', hand:isHost?oppHand:myHand, box: box.slice()}); // 残り山札を送信
         updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); updateTurnDisplay();
         suppressedReachOptions.clear(); renderCoins();
       }
@@ -536,7 +535,7 @@
                   qrHost?{name:'相手',hand:oppHand,discard:[],points:300, coinCounts: cloneCoinCounts(INITIAL_COIN_COUNTS)}:{name:'あなた',hand:myHand,discard:[],points:300, coinCounts: cloneCoinCounts(INITIAL_COIN_COUNTS)} ];
         myPlayerId=qrHost?0:1; currentPlayerIndex=0; gameFinished=false;
         DOM.startQrGameBtn.style.display='none'; DOM.opponentArea.style.display='block'; DOM.myDiscardArea.style.display='block';
-        conn.send({type:'start', hand:qrHost?oppHand:myHand, points:300});
+        conn.send({type:'start', hand:qrHost?oppHand:myHand, box: box.slice()});
         updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); updateTurnDisplay();
         suppressedReachOptions.clear(); renderCoins();
       }
@@ -544,8 +543,10 @@
       function handleOpponentMessage(data){
         if(data.type==='start'){
           if(isHost) return;
-          box=createBox();
-          const oppHand=data.hand; const myHand=box.splice(0,8);
+          // 相手から受け取った山札と手札で初期化
+          box = data.box; // 残り山札をそのまま使用
+          const oppHand=data.hand;
+          const myHand=box.splice(0,8); // 自分用の手札8枚を残り山札から取得（ホスト側と整合）
           players=[{name:'相手',hand:oppHand,discard:[],points:300, coinCounts: cloneCoinCounts(INITIAL_COIN_COUNTS)},{name:'あなた',hand:myHand,discard:[],points:300, coinCounts: cloneCoinCounts(INITIAL_COIN_COUNTS)}];
           myPlayerId=1; currentPlayerIndex=0; gameFinished=false;
           DOM.opponentArea.style.display='block'; DOM.myDiscardArea.style.display='block';
@@ -555,9 +556,8 @@
         else if(data.type==='draw'){
           const opp=players[1-myPlayerId];
           opp.hand.push(data.pieceId);
-          if(data.boxRemaining!==undefined) box=Array(data.boxRemaining).fill(0);
+          if(data.boxRemaining!==undefined) box = Array(data.boxRemaining).fill(0); // 簡易同期（本来的には山札配列同期が必要だが、以降ドローは自ターンのみ）
           updateBox(); renderOpponents();
-          // 手番表示は捨て牌時まで更新しない
         }
         else if(data.type==='discard'){
           const opp=players[1-myPlayerId];
@@ -577,13 +577,11 @@
           gameFinished=true;
         }
         else if(data.type==='newRound'){
-          // ホストからの新ラウンド開始指示
-          box=createBox(); // 自分の箱を新規作成
+          box = data.box; // 新しい山札
           const oppHand=data.hand;
           const myHand=box.splice(0,8);
-          // プレイヤー情報を再設定（ポイントは引き継ぎ）
-          const myPrevPoints = players[myPlayerId] ? sumCoinCounts(players[myPlayerId].coinCounts) : 300;
-          const oppPrevPoints = players[1-myPlayerId] ? sumCoinCounts(players[1-myPlayerId].coinCounts) : 300;
+          const myPrevPoints = sumCoinCounts(players[myPlayerId]?.coinCounts || INITIAL_COIN_COUNTS);
+          const oppPrevPoints = sumCoinCounts(players[1-myPlayerId]?.coinCounts || INITIAL_COIN_COUNTS);
           players=[ {name:'相手',hand:oppHand,discard:[],points:oppPrevPoints, coinCounts: cloneCoinCounts(players[1-myPlayerId]?.coinCounts || INITIAL_COIN_COUNTS)},
                     {name:'あなた',hand:myHand,discard:[],points:myPrevPoints, coinCounts: cloneCoinCounts(players[myPlayerId]?.coinCounts || INITIAL_COIN_COUNTS)} ];
           myPlayerId=1; currentPlayerIndex=data.winnerIndex; gameFinished=false;
@@ -689,7 +687,7 @@
         currentPlayerIndex = winnerIndex;
         gameFinished = false; inReach = false; DOM.reachBadge.style.display='none';
         updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); updateTurnDisplay();
-        conn.send({type:'newRound', hand: oppHand, winnerIndex: winnerIndex});
+        conn.send({type:'newRound', hand: oppHand, box: box.slice(), winnerIndex: winnerIndex});
         suppressedReachOptions.clear(); renderCoins();
       }
 
