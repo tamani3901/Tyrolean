@@ -370,8 +370,9 @@
       function startNewRound(winnerIndex){
         box=createBox(); players.forEach(p=>{ p.hand=box.splice(0,8); p.discard=[]; });
         playerReachState = new Array(players.length).fill(false);
+        // ★ myPlayerId は常に 0（あなた）で固定 ★
+        myPlayerId = 0;
         currentPlayerIndex=winnerIndex;
-        if(currentMode==='pass'||currentMode==='cpu') myPlayerId=winnerIndex;
         gameFinished=false; inReach=false; DOM.reachBadge.style.display='none';
         updateBox(); renderHand(); renderMyDiscard(); renderOpponents();
         if(currentMode==='cpu'){
@@ -440,7 +441,6 @@
           }
           renderOpponents();
         }
-        // ---- ここが重要: CPUのターン終了後、必ずnextCpuTurnを呼ぶ ----
         nextCpuTurn();
       }
 
@@ -459,7 +459,7 @@
 
       function cpuWin(yaku){
         gameFinished=true; inReach=false;
-        lastWinnerIndex = 1; // ★ CPUが勝ったので次の親はCPU
+        lastWinnerIndex = 1;
         playerReachState = [false, false];
         applyPoints(1,yaku.pts,'self');
         totalPoints=players[0].points;
@@ -544,7 +544,7 @@
         DOM.resultModalContent.innerHTML=`<h2>${msg}</h2><p>現在のポイント: ${players.map(p=>p.name+': '+p.points+'pt').join(', ')}</p>${continueBtn}`;
         DOM.resultModal.style.display='flex';
         const contBtn=document.getElementById('continueBtn');
-        if(contBtn) contBtn.addEventListener('click',()=>{ DOM.resultModal.style.display='none'; startNewRound(winner?myPlayerId:1); });
+        if(contBtn) contBtn.addEventListener('click',()=>{ DOM.resultModal.style.display='none'; startNewRound(winner?0:1); });
         else { setTimeout(()=>{ DOM.resultModal.style.display='none'; },2000); }
         suppressedReachOptions.clear();
       }
