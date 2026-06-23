@@ -4,8 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>チロルジャン 2009</title>
-  <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js">
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js">
+  </script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
     body { font-family: 'Hiragino Sans', sans-serif; background: #fdf6ec; color: #4a3b2f; display: flex; flex-direction: column; align-items: center; padding: 8px 8px 30px; min-height: 100vh; }
@@ -26,14 +28,10 @@
     .piece-slot:active { cursor:grabbing; }
     .piece-slot img { width:100%; height:100%; border-radius:9px; object-fit:cover; pointer-events:none; }
     .piece-slot.empty { background:#f3ede5; border:2px dashed #d6c3a5; cursor:default; }
-    .piece-slot.selected { border-color:#e05a2a; box-shadow:0 0 8px #e05a2a; }
+    .piece-slot.selected { border-color:#e05a2a !important; box-shadow:0 0 8px #e05a2a; }
     .piece-slot.dragging { opacity:0.4; transform:scale(1.05); z-index:10; }
     .piece-slot.drag-over { border-color:#f0c27a; box-shadow:0 0 8px #f0c27a; }
     .piece-slot.no-drag { cursor:pointer; }
-    .piece-slot.color-brown { border-color: #8B4513; }
-    .piece-slot.color-blue { border-color: #4169E1; }
-    .piece-slot.color-white { border-color: #DDDDDD; }
-    .piece-slot.color-skin { border-color: #DEB887; }
     .box-section { display:flex; align-items:center; justify-content:center; gap:12px; margin:10px 0; }
     .box-image { width:80px; height:80px; background:#d9b382; border-radius:16px; border:4px solid #b78b5a; cursor:pointer; overflow:hidden; background-size:cover; }
     .box-image img { width:100%; height:100%; object-fit:cover; }
@@ -44,7 +42,7 @@
     .info-area { background:#fef9f0; border-radius:20px; padding:12px; margin:6px 0; border:2px solid #e6c89e; width:100%; max-width:500px; }
     .discard-history { display:flex; gap:4px; flex-wrap:wrap; margin-top:4px; }
     .discard-chip { width:36px; height:36px; border-radius:8px; background:#f5e1c4; border:2px solid #aaa; display:flex; align-items:center; justify-content:center; }
-    .discard-chip.latest { border-color:#e05a2a; box-shadow:0 0 6px #e05a2a; cursor:pointer; }
+    .discard-chip.latest { border-color:#e05a2a !important; box-shadow:0 0 6px #e05a2a; cursor:pointer; }
     .room-area { background:#fffbf2; border:2px solid #d49b3b; border-radius:16px; padding:12px; margin:10px 0; width:100%; max-width:500px; text-align:center; }
     .room-input { padding:8px 12px; font-size:1.2rem; width:180px; text-align:center; border-radius:12px; border:2px solid #d49b3b; }
     .rules-box { background:#fffbf2; border:2px solid #e6c89e; border-radius:16px; padding:10px; margin:8px 0; font-size:0.75rem; max-width:500px; }
@@ -56,7 +54,6 @@
     .reach-checkbox-label { font-size:0.8rem; color:#8b5a2b; margin-left:4px; }
     .reach-badge { display:inline-block; background:#f0c27a; border-radius:20px; padding:4px 12px; font-weight:bold; margin-left:8px; }
     #reachBadge { display:none; position:fixed; top:10px; right:10px; background:#e05a2a; color:white; padding:4px 14px; border-radius:20px; font-weight:bold; z-index:50; font-size:0.9rem; }
-    .opponent-reach { color:#e05a2a; font-weight:bold; margin-left:4px; }
     #qrModal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:180; flex-direction:column; }
     #qrCodeContainer { background:white; padding:16px; border-radius:20px; max-width:320px; width:90%; }
     #imageModal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); display:flex; align-items:center; justify-content:center; z-index:190; }
@@ -92,7 +89,7 @@
     </div>
 
     <div class="rules-box">
-      <details><summary>📖 ルール</summary>・8枚スタート→引いて9枚→不要牌を捨てる<br>・3枚セット×3組でアガリ<br>・相手の最後の捨て牌でチロル可能<br>・リーチあり（捨てた後に選択可能）<br>・誰かのポイントが0になるまでラウンドを繰り返す</details>
+      <details><summary>📖 ルール</summary>・8枚スタート→引いて9枚→不要牌を捨てる<br>・3枚セット×3組でアガリ<br>・相手の最後の捨て牌でロン可能<br>・リーチあり（捨てた後に選択可能）<br>・誰かのポイントが0になるまでラウンドを繰り返す</details>
     </div>
 
     <button class="btn" id="startCpuGameBtn">▶️ CPU戦を始める</button>
@@ -109,11 +106,7 @@
       <div class="room-area"><p><strong>1台で交代対戦</strong></p><div style="margin:6px 0;">人数: <select id="passPlayerCount" style="padding:6px; border-radius:12px; border:2px solid #d49b3b;"><option value="2">2人</option><option value="3">3人</option><option value="4">4人</option></select></div><div id="passNameInputs"><input class="room-input" type="text" placeholder="プレイヤー1の名前" id="passName1" style="margin:3px;"><br><input class="room-input" type="text" placeholder="プレイヤー2の名前" id="passName2" style="margin:3px;"></div><button class="btn" id="startPassGameBtn">▶️ ゲーム開始</button></div>
     </div>
 
-    <div class="info-area" id="opponentArea" style="display:none;">
-      <div>🤝 相手の手札: <span id="opponentHandCount">0</span>枚 <span id="opponentReachBadge" class="opponent-reach" style="display:none;">⚡リーチ中</span></div>
-      <div>捨て牌（赤枠の最後の1枚だけチロル可能）:</div>
-      <div class="discard-history" id="opponentDiscardHistory"></div>
-    </div>
+    <div class="info-area" id="opponentArea" style="display:none;"><div>🤝 相手の手札: <span id="opponentHandCount">0</span>枚</div><div>捨て牌（赤枠の最後の1枚だけロン可能）:</div><div class="discard-history" id="opponentDiscardHistory"></div></div>
 
     <div class="info-area" id="myDiscardArea"><div>🗑️ 自分の捨て牌:</div><div class="discard-history" id="myDiscardHistory"></div></div>
 
@@ -165,18 +158,18 @@
       document.getElementById('imageModal').addEventListener('click', () => { document.getElementById('imageModal').style.display = 'none'; });
 
       const PIECE_TYPES = [
-        { id:0, name:'コーヒーヌガー', color:'brown', count:9, file:'coffee_nougat.png' },
-        { id:1, name:'ホワイトビス',   color:'blue',  count:6, file:'white_bis.png' },
-        { id:2, name:'ミルク',         color:'white', count:9, file:'milk.png' },
-        { id:3, name:'コーヒーフロート', color:'brown', count:6, file:'coffee_float.png' },
-        { id:4, name:'シナモンオレ',   color:'skin',  count:6, file:'cinnamon_ole.png' },
-        { id:5, name:'バニラプリン',   color:'skin',  count:6, file:'vanilla_pudding.png' },
-        { id:6, name:'塩バニラ',       color:'blue',  count:6, file:'salt_vanilla.png' },
-        { id:7, name:'きなこ',         color:'skin',  count:9, file:'kinako.png' },
-        { id:8, name:'いちご大福',     color:'white', count:6, file:'ichigo_daifuku.png' },
-        { id:9, name:'みるく大福',     color:'white', count:6, file:'milk_daifuku.png' },
-        { id:10,name:'アーモンド',     color:'blue',  count:9, file:'almond.png' },
-        { id:11,name:'ヘーゼルナッツ', color:'brown', count:6, file:'hazelnut.png' }
+        { id:0, name:'コーヒーヌガー', color:'brown', count:9, file:'coffee_nougat.png', borderColor:'#8B4513' },
+        { id:1, name:'ホワイトビス',   color:'blue',  count:6, file:'white_bis.png', borderColor:'#4169E1' },
+        { id:2, name:'ミルク',         color:'white', count:9, file:'milk.png', borderColor:'#C0C0C0' },
+        { id:3, name:'コーヒーフロート', color:'brown', count:6, file:'coffee_float.png', borderColor:'#8B4513' },
+        { id:4, name:'シナモンオレ',   color:'skin',  count:6, file:'cinnamon_ole.png', borderColor:'#DEB887' },
+        { id:5, name:'バニラプリン',   color:'skin',  count:6, file:'vanilla_pudding.png', borderColor:'#DEB887' },
+        { id:6, name:'塩バニラ',       color:'blue',  count:6, file:'salt_vanilla.png', borderColor:'#4169E1' },
+        { id:7, name:'きなこ',         color:'skin',  count:9, file:'kinako.png', borderColor:'#DEB887' },
+        { id:8, name:'いちご大福',     color:'white', count:6, file:'ichigo_daifuku.png', borderColor:'#C0C0C0' },
+        { id:9, name:'みるく大福',     color:'white', count:6, file:'milk_daifuku.png', borderColor:'#C0C0C0' },
+        { id:10,name:'アーモンド',     color:'blue',  count:9, file:'almond.png', borderColor:'#4169E1' },
+        { id:11,name:'ヘーゼルナッツ', color:'brown', count:6, file:'hazelnut.png', borderColor:'#8B4513' }
       ].map(t => ({ ...t, img: IMAGE_BASE_URL + t.file }));
 
       const YAKU_LIST = [
@@ -193,16 +186,12 @@
         { name:'バラエティ', pts:30, check:c=>{ const non=[1,3,4,5,6,7,8,9,11]; return non.every(i=>c[i]===1) && c[0]===0&&c[2]===0&&c[10]===0; }}
       ];
 
-      const COLOR_CLASS = { brown:'color-brown', blue:'color-blue', white:'color-white', skin:'color-skin' };
-
       let box=[], players=[], currentPlayerIndex=0, totalPoints=300, gameFinished=false;
       let currentMode='cpu', myPlayerId=0, peer=null, conn=null, isHost=false, qrHost=false;
       let selectedDiscardIndex=null, inReach=false, reachNeedPieceIds=[];
       let suppressedReachOptions = new Set();
       const INITIAL_COIN_COUNTS = {100:1, 50:2, 10:6, 5:8};
       let coinCounts = {...INITIAL_COIN_COUNTS};
-      let lastWinnerIndex = null;
-      let playerReachState = [];
 
       const DOM = {
         handContainer: document.getElementById('handContainer'),
@@ -211,7 +200,6 @@
         coinDisplay: document.getElementById('coinDisplay'),
         opponentArea: document.getElementById('opponentArea'),
         opponentHandCount: document.getElementById('opponentHandCount'),
-        opponentReachBadge: document.getElementById('opponentReachBadge'),
         opponentDiscardHistory: document.getElementById('opponentDiscardHistory'),
         myDiscardArea: document.getElementById('myDiscardArea'),
         myDiscardHistory: document.getElementById('myDiscardHistory'),
@@ -239,11 +227,19 @@
       };
 
       document.getElementById('settingsBtn').addEventListener('click', () => {
-        DOM.settingsModalContent.innerHTML = `<h3>⚙️ 設定</h3><div style="margin:10px 0;"><label><input type="checkbox" id="settingsSoundCheck" ${soundEnabled?'checked':''}> 効果音を有効にする</label></div><button class="btn" id="resetReachSuppressBtn">🔄 リーチ表示をリセット</button><p style="font-size:0.8rem; color:#8b5a2b; margin-top:8px;">リセットすると、非表示にしたリーチの選択肢が再表示されます。</p><button class="btn" id="closeSettingsBtn" style="margin-top:8px;">閉じる</button>`;
-        DOM.settingsModal.style.display='flex';
-        document.getElementById('settingsSoundCheck').addEventListener('change',e=>{soundEnabled=e.target.checked;});
-        document.getElementById('resetReachSuppressBtn').addEventListener('click',()=>{suppressedReachOptions.clear();setMsg('リーチ表示をリセットしました');DOM.settingsModal.style.display='none';});
-        document.getElementById('closeSettingsBtn').addEventListener('click',()=>{DOM.settingsModal.style.display='none';});
+        DOM.settingsModalContent.innerHTML = `
+          <h3>⚙️ 設定</h3>
+          <div style="margin:10px 0;">
+            <label><input type="checkbox" id="settingsSoundCheck" ${soundEnabled ? 'checked' : ''}> 効果音を有効にする</label>
+          </div>
+          <button class="btn" id="resetReachSuppressBtn">🔄 リーチ表示をリセット</button>
+          <p style="font-size:0.8rem; color:#8b5a2b; margin-top:8px;">リセットすると、非表示にしたリーチの選択肢が再表示されます。</p>
+          <button class="btn" id="closeSettingsBtn" style="margin-top:8px;">閉じる</button>
+        `;
+        DOM.settingsModal.style.display = 'flex';
+        document.getElementById('settingsSoundCheck').addEventListener('change', (e) => { soundEnabled = e.target.checked; });
+        document.getElementById('resetReachSuppressBtn').addEventListener('click', () => { suppressedReachOptions.clear(); setMsg('リーチ表示をリセットしました'); DOM.settingsModal.style.display = 'none'; });
+        document.getElementById('closeSettingsBtn').addEventListener('click', () => { DOM.settingsModal.style.display = 'none'; });
       });
 
       function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]; } return a; }
@@ -252,28 +248,50 @@
       function isValidHand(hand){ const c=getCounts(hand); return c.filter(v=>v===3).length===3 && c.reduce((a,b)=>a+b,0)===9; }
       function checkYaku(h){ const c=getCounts(h); for(let y of YAKU_LIST) if(y.check(c,h)) return {name:y.name, pts:y.pts}; if(isValidHand(h)) return {name:'なんでも3種', pts:15}; return null; }
 
-      function getReachOptions(h){ if(h.length!==8) return []; const opts=[]; for(let pid=0; pid<12; pid++){ const th=[...h, pid]; const yaku=checkYaku(th); if(yaku){ const key = `${yaku.name}_${pid}`; if(!suppressedReachOptions.has(key) && !opts.some(o=>o.yakuName===yaku.name&&o.needPieceId===pid)) opts.push({yakuName:yaku.name, pts:yaku.pts, needPieceId:pid}); } } return opts; }
+      function getReachOptions(h){
+        if(h.length!==8) return [];
+        const opts=[];
+        for(let pid=0; pid<12; pid++){
+          const th=[...h, pid];
+          const yaku=checkYaku(th);
+          if(yaku){
+            const key = `${yaku.name}_${pid}`;
+            if(!suppressedReachOptions.has(key) && !opts.some(o=>o.yakuName===yaku.name&&o.needPieceId===pid)){
+              opts.push({yakuName:yaku.name, pts:yaku.pts, needPieceId:pid});
+            }
+          }
+        }
+        return opts;
+      }
 
       function getMyHand(){ return players[myPlayerId]?.hand || []; }
       function setMyHand(h){ if(players[myPlayerId]) players[myPlayerId].hand = h; }
       function getMyDiscard(){ return players[myPlayerId]?.discard || []; }
 
-      function updateReachDisplay(){
-        DOM.reachBadge.style.display = inReach ? 'block' : 'none';
-        let anyOpponentReach = false;
-        players.forEach((p, idx) => { if(idx === myPlayerId) return; if(playerReachState[idx]) anyOpponentReach = true; });
-        DOM.opponentReachBadge.style.display = anyOpponentReach ? 'inline' : 'none';
-      }
-
       function enableDragSort(container, handArray) {
         let dragSrcEl = null;
         container.querySelectorAll('.piece-slot:not(.empty)').forEach(slot => {
           slot.setAttribute('draggable', 'true');
-          slot.addEventListener('dragstart', function(e) { dragSrcEl = this; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/html', this.innerHTML); this.classList.add('dragging'); });
+          slot.addEventListener('dragstart', function(e) {
+            dragSrcEl = this;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', this.innerHTML);
+            this.classList.add('dragging');
+          });
           slot.addEventListener('dragover', function(e) { if (e.preventDefault) e.preventDefault(); e.dataTransfer.dropEffect = 'move'; return false; });
           slot.addEventListener('dragenter', function(e) { this.classList.add('drag-over'); });
           slot.addEventListener('dragleave', function(e) { this.classList.remove('drag-over'); });
-          slot.addEventListener('drop', function(e) { if (e.stopPropagation) e.stopPropagation(); if (dragSrcEl != this) { const srcIndex = parseInt(dragSrcEl.dataset.index); const dstIndex = parseInt(this.dataset.index); [handArray[srcIndex], handArray[dstIndex]] = [handArray[dstIndex], handArray[srcIndex]]; setMyHand(handArray); renderHand(); } return false; });
+          slot.addEventListener('drop', function(e) {
+            if (e.stopPropagation) e.stopPropagation();
+            if (dragSrcEl != this) {
+              const srcIndex = parseInt(dragSrcEl.dataset.index);
+              const dstIndex = parseInt(this.dataset.index);
+              [handArray[srcIndex], handArray[dstIndex]] = [handArray[dstIndex], handArray[srcIndex]];
+              setMyHand(handArray);
+              renderHand();
+            }
+            return false;
+          });
           slot.addEventListener('dragend', function(e) { this.classList.remove('dragging'); container.querySelectorAll('.piece-slot').forEach(s => s.classList.remove('drag-over')); });
         });
       }
@@ -281,9 +299,32 @@
       function enableTouchSort(container, handArray) {
         let touchStartX, touchStartY, touchSrcIndex, touchDragging = false;
         container.querySelectorAll('.piece-slot:not(.empty)').forEach(slot => {
-          slot.addEventListener('touchstart', function(e) { touchSrcIndex = parseInt(this.dataset.index); touchDragging = false; touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; this.classList.add('dragging'); });
-          slot.addEventListener('touchmove', function(e) { if (!touchDragging && (Math.abs(e.touches[0].clientX - touchStartX) > 10 || Math.abs(e.touches[0].clientY - touchStartY) > 10)) touchDragging = true; if (touchDragging) e.preventDefault(); });
-          slot.addEventListener('touchend', function(e) { this.classList.remove('dragging'); if (touchDragging) { const touch = e.changedTouches[0]; const target = document.elementFromPoint(touch.clientX, touch.clientY); if (target && target.closest('.piece-slot')) { const dstSlot = target.closest('.piece-slot'); const dstIndex = parseInt(dstSlot.dataset.index); if (dstIndex != touchSrcIndex && dstIndex >= 0 && dstIndex < handArray.length) { [handArray[touchSrcIndex], handArray[dstIndex]] = [handArray[dstIndex], handArray[touchSrcIndex]]; setMyHand(handArray); renderHand(); } } } touchDragging = false; });
+          slot.addEventListener('touchstart', function(e) {
+            touchSrcIndex = parseInt(this.dataset.index); touchDragging = false;
+            touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY;
+            this.classList.add('dragging');
+          });
+          slot.addEventListener('touchmove', function(e) {
+            if (!touchDragging && (Math.abs(e.touches[0].clientX - touchStartX) > 10 || Math.abs(e.touches[0].clientY - touchStartY) > 10)) touchDragging = true;
+            if (touchDragging) e.preventDefault();
+          });
+          slot.addEventListener('touchend', function(e) {
+            this.classList.remove('dragging');
+            if (touchDragging) {
+              const touch = e.changedTouches[0];
+              const target = document.elementFromPoint(touch.clientX, touch.clientY);
+              if (target && target.closest('.piece-slot')) {
+                const dstSlot = target.closest('.piece-slot');
+                const dstIndex = parseInt(dstSlot.dataset.index);
+                if (dstIndex != touchSrcIndex && dstIndex >= 0 && dstIndex < handArray.length) {
+                  [handArray[touchSrcIndex], handArray[dstIndex]] = [handArray[dstIndex], handArray[touchSrcIndex]];
+                  setMyHand(handArray);
+                  renderHand();
+                }
+              }
+            }
+            touchDragging = false;
+          });
         });
       }
 
@@ -297,7 +338,7 @@
             const t=PIECE_TYPES[hand[i]];
             const img=document.createElement('img'); img.src=t.img; img.alt=t.name;
             s.appendChild(img);
-            if(COLOR_CLASS[t.color]) s.classList.add(COLOR_CLASS[t.color]);
+            s.style.borderColor = t.borderColor;
             if(hand.length===9){ s.classList.add('no-drag'); s.setAttribute('draggable','false'); }
             else { s.setAttribute('draggable','true'); }
             s.addEventListener('click',(e)=>{ if(!s.classList.contains('dragging')) selectDiscard(i); });
@@ -307,7 +348,13 @@
         if(hand.length===8){ enableDragSort(DOM.handContainer, hand); enableTouchSort(DOM.handContainer, hand); }
       }
 
-      function selectDiscard(index){ if(!isMyTurn() || getMyHand().length!==9) return; DOM.handContainer.querySelectorAll('.piece-slot').forEach(s=>s.classList.remove('selected')); selectedDiscardIndex=index; DOM.handContainer.querySelectorAll('.piece-slot')[index].classList.add('selected'); setMsg(`「${PIECE_TYPES[getMyHand()[index]].name}」を捨てますか？ もう一度タップで決定`, true); }
+      function selectDiscard(index){
+        if(!isMyTurn() || getMyHand().length!==9) return;
+        DOM.handContainer.querySelectorAll('.piece-slot').forEach(s=>s.classList.remove('selected'));
+        selectedDiscardIndex=index;
+        DOM.handContainer.querySelectorAll('.piece-slot')[index].classList.add('selected');
+        setMsg(`「${PIECE_TYPES[getMyHand()[index]].name}」を捨てますか？ もう一度タップで決定`, true);
+      }
 
       function confirmDiscard(){
         if(selectedDiscardIndex===null || getMyHand().length!==9) return;
@@ -317,21 +364,23 @@
         setMsg(`${PIECE_TYPES[piece].name}を捨てました`);
         if(currentMode==='pass'){ if(!inReach && getMyHand().length===8){ const opts=getReachOptions(getMyHand()); if(opts.length>0) showReachOptions(opts); } renderOpponents(); }
         else if(currentMode==='cpu'){ nextCpuTurn(); }
-        else { sendToOpponent({type:'discard', hand:getMyHand(), discard:players[myPlayerId].discard}); myTurn=false; updateTurnDisplay(); }
+        else { sendToOpponent({type:'discard', pieceId:piece, hand:getMyHand(), discard:players[myPlayerId].discard}); myTurn=false; updateTurnDisplay(); if(!inReach && getMyHand().length===8){ const opts=getReachOptions(getMyHand()); if(opts.length>0) showReachOptions(opts); } }
       }
 
-      function renderMyDiscard(){ DOM.myDiscardHistory.innerHTML=''; getMyDiscard().forEach(id=>{ const chip=document.createElement('div'); chip.className='discard-chip'; const img=document.createElement('img'); img.src=PIECE_TYPES[id].img; img.style.width='100%'; chip.appendChild(img); DOM.myDiscardHistory.appendChild(chip); }); }
+      function renderMyDiscard(){ DOM.myDiscardHistory.innerHTML=''; getMyDiscard().forEach(id=>{ const chip=document.createElement('div'); chip.className='discard-chip'; const img=document.createElement('img'); img.src=PIECE_TYPES[id].img; img.style.width='100%'; chip.style.borderColor = PIECE_TYPES[id].borderColor; chip.appendChild(img); DOM.myDiscardHistory.appendChild(chip); }); }
 
       function renderOpponents(){
-        DOM.opponentDiscardHistory.innerHTML=''; DOM.opponentArea.style.display='block'; let oppFound = false;
+        DOM.opponentDiscardHistory.innerHTML=''; DOM.opponentArea.style.display='block';
+        let oppFound = false;
         players.forEach((p, idx) => { if(idx === myPlayerId) return; oppFound = true; DOM.opponentHandCount.textContent = p.hand.length;
           p.discard.forEach((id, i) => { const chip = document.createElement('div'); chip.className = 'discard-chip'; const img = document.createElement('img'); img.src = PIECE_TYPES[id].img; img.style.width = '100%';
+            chip.style.borderColor = PIECE_TYPES[id].borderColor;
             if(i === p.discard.length - 1) { chip.classList.add('latest'); chip.addEventListener('click', () => ronRequest(id, idx)); } chip.appendChild(img); DOM.opponentDiscardHistory.appendChild(chip); }); });
         if(!oppFound) DOM.opponentArea.style.display='none';
-        updateReachDisplay();
       }
 
       function updateCoinCounts() { let remaining = totalPoints; const newCounts = {100:0, 50:0, 10:0, 5:0}; newCounts[100] = Math.floor(remaining / 100); remaining %= 100; newCounts[50] = Math.floor(remaining / 50); remaining %= 50; newCounts[10] = Math.floor(remaining / 10); remaining %= 10; newCounts[5] = Math.floor(remaining / 5); if(remaining > 0) newCounts[5]++; coinCounts = newCounts; renderCoins(); }
+
       function renderCoins(){ DOM.coinDisplay.innerHTML = ''; const denoms = [100,50,10,5]; denoms.forEach(d => { if(coinCounts[d] > 0){ const stack = document.createElement('div'); stack.className='coin-stack'; for(let i=0; i<coinCounts[d]; i++){ const img = document.createElement('img'); img.src = IMAGE_BASE_URL + `coin${d}.png`; img.style.zIndex = i; stack.appendChild(img); } const label = document.createElement('span'); label.className='coin-label'; label.textContent = `×${coinCounts[d]}`; stack.appendChild(label); DOM.coinDisplay.appendChild(stack); } }); }
 
       function updateBox(){ DOM.boxRemaining.textContent=box.length; }
@@ -343,18 +392,11 @@
       function drawRequest(){
         if(!isMyTurn() || getMyHand().length!==8 || box.length===0) return;
         if(soundEnabled) DRAW_SOUND.play().catch(()=>{});
-        if(currentMode==='pass' || currentMode==='cpu'){
-          const id = box.pop();
-          if(typeof id !== 'number') return;
-          getMyHand().push(id);
-          updateBox(); renderHand();
-          if(getMyHand().length===9){
-            const yaku = checkYaku(getMyHand());
-            if(yaku){ winGame(yaku,'self'); } else { setMsg('役がありません。捨てる牌を選んでください'); }
-          }
-        } else {
-          sendToOpponent({type:'draw'});
-        }
+        const id=box.pop(); getMyHand().push(id); updateBox(); renderHand();
+        if(box.length===0){ setTimeout(()=>{ fullReset(); }, 500); return; }
+        if(currentMode==='pass'){ if(getMyHand().length===9){ const yaku=checkYaku(getMyHand()); if(yaku){ winGame(yaku,'tsumo'); return; } else setMsg('役がありません。捨てる牌を選んでください'); } }
+        else if(currentMode==='cpu'){ if(getMyHand().length===9){ const yaku=checkYaku(getMyHand()); if(yaku){ winGame(yaku,'tsumo'); return; } else setMsg('役がありません。捨てる牌を選んでください'); } }
+        else { sendToOpponent({type:'draw', pieceId:id, boxRemaining:box.length}); if(getMyHand().length===9){ const yaku=checkYaku(getMyHand()); if(yaku){ winGame(yaku,'tsumo'); sendToOpponent({type:'win', yaku:yaku, method:'tsumo'}); } else setMsg('役がありません。捨てる牌を選んでください'); } }
       }
 
       function ronRequest(discardId, fromIndex){
@@ -364,26 +406,22 @@
         else setMsg('その牌ではアガれません', false);
       }
 
-      function fullReset(){
-        if(peer){ peer.destroy(); peer=null; conn=null; }
-        totalPoints=300; coinCounts = {...INITIAL_COIN_COUNTS}; renderCoins(); lastWinnerIndex=null;
-        DOM.opponentArea.style.display='none'; DOM.passNextBtn.style.display='none'; DOM.currentPlayerDisplay.textContent='';
-        if(currentMode==='cpu'){ newCpuGame(true); }
-        else if(currentMode==='pass'){ players.forEach(p=>p.points=300); startNewRoundPass(true); }
-        else { totalPoints=300; coinCounts = {...INITIAL_COIN_COUNTS}; renderCoins(); if(players[myPlayerId]) players[myPlayerId].points=300; }
-        DOM.connectionStatus.textContent='未接続'; DOM.startOnlineGameBtn.style.display='none';
-        DOM.startQrGameBtn.style.display='none'; DOM.qrConnectionStatus.textContent='未接続';
-      }
+      function fullReset(){ totalPoints=300; coinCounts = {...INITIAL_COIN_COUNTS}; renderCoins(); if(currentMode==='cpu'){ newCpuGame(true); } else if(currentMode==='pass'){ players.forEach(p=>p.points=300); startNewRoundPass(true); } else { totalPoints=300; coinCounts = {...INITIAL_COIN_COUNTS}; renderCoins(); if(players[myPlayerId]) players[myPlayerId].points=300; } }
 
       function startNewRound(winnerIndex){
-        box=createBox(); players.forEach(p=>{ p.hand=box.splice(0,8); p.discard=[]; });
-        playerReachState = new Array(players.length).fill(false);
-        myPlayerId = 0; currentPlayerIndex=winnerIndex;
+        box=createBox();
+        players.forEach(p=>{ p.hand=box.splice(0,8); p.discard=[]; });
+        currentPlayerIndex=winnerIndex;
+        if(currentMode==='pass'){
+          myPlayerId=winnerIndex;
+        }
+        // CPU戦ではmyPlayerIdを変更しない（常に0がプレイヤー）
         gameFinished=false; inReach=false; DOM.reachBadge.style.display='none';
         updateBox(); renderHand(); renderMyDiscard(); renderOpponents();
         if(currentMode==='cpu'){
-          myTurn=(currentPlayerIndex===0); updateTurnDisplay();
-          if(!myTurn) setTimeout(cpuTurn,800);
+          myTurn=(currentPlayerIndex===0);
+          updateTurnDisplay();
+          if(!myTurn) setTimeout(cpuTurn,1000);
         } else if(currentMode==='pass'){
           DOM.currentPlayerDisplay.textContent=`現在: ${players[currentPlayerIndex].name} の番`;
           setMsg(`${players[currentPlayerIndex].name} の番です`); myTurn=true;
@@ -395,153 +433,52 @@
         const count=parseInt(DOM.passPlayerCount.value); const names=[];
         for(let i=1;i<=count;i++){ const inp=document.getElementById(`passName${i}`); names.push(inp?inp.value.trim()||`プレイヤー${i}`:`プレイヤー${i}`); }
         box=createBox(); players=names.map((name,i)=>({name,hand:box.splice(0,8),discard:[],points:300}));
-        playerReachState = new Array(players.length).fill(false);
-        myPlayerId=0; currentPlayerIndex=0; gameFinished=false; inReach=false; myTurn=true; currentMode='pass'; lastWinnerIndex=null;
+        myPlayerId=0; currentPlayerIndex=0; gameFinished=false; inReach=false; myTurn=true; currentMode='pass';
         DOM.opponentArea.style.display='block'; DOM.myDiscardArea.style.display='block'; DOM.passNextBtn.style.display='inline-block';
-        DOM.reachBadge.style.display='none'; DOM.opponentReachBadge.style.display='none';
-        DOM.currentPlayerDisplay.textContent=`現在: ${players[0].name} の番`;
+        DOM.reachBadge.style.display='none'; DOM.currentPlayerDisplay.textContent=`現在: ${players[0].name} の番`;
         updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); setMsg(`${players[0].name} の番です`);
-        suppressedReachOptions.clear(); totalPoints=300; coinCounts = {...INITIAL_COIN_COUNTS}; renderCoins();
+        suppressedReachOptions.clear();
+        totalPoints=300; coinCounts = {...INITIAL_COIN_COUNTS}; renderCoins();
       }
-      function startNewRoundPass(fullResetPoints=false){ if(fullResetPoints) players.forEach(p=>p.points=300); box=createBox(); players.forEach(p=>{ p.hand=box.splice(0,8); p.discard=[]; }); playerReachState = new Array(players.length).fill(false); currentPlayerIndex=0; myPlayerId=0; gameFinished=false; inReach=false; DOM.reachBadge.style.display='none'; DOM.opponentReachBadge.style.display='none'; DOM.currentPlayerDisplay.textContent=`現在: ${players[0].name} の番`; updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); setMsg(`${players[0].name} の番です`); myTurn=true; suppressedReachOptions.clear(); updateCoinCounts(); }
-      function passToNext(){ if(currentMode!=='pass'||gameFinished) return; const nextIndex=(currentPlayerIndex+1)%players.length; DOM.passModalContent.innerHTML=`<h2>${players[currentPlayerIndex].name} の番が終わりました</h2><p>端末を <strong>${players[nextIndex].name}</strong> に渡してください</p><button class="btn" id="passOkBtn">OK（${players[nextIndex].name} の番を開始）</button>`; DOM.passModal.style.display='flex'; document.getElementById('passOkBtn').addEventListener('click',()=>{ DOM.passModal.style.display='none'; currentPlayerIndex=nextIndex; myPlayerId=nextIndex; myTurn=true; inReach=false; DOM.reachBadge.style.display='none'; updateReachDisplay(); DOM.currentPlayerDisplay.textContent=`現在: ${players[nextIndex].name} の番`; renderHand(); renderMyDiscard(); renderOpponents(); updateBox(); setMsg(`${players[nextIndex].name} の番です`); }); }
+      function startNewRoundPass(fullResetPoints=false){ if(fullResetPoints) players.forEach(p=>p.points=300); box=createBox(); players.forEach(p=>{ p.hand=box.splice(0,8); p.discard=[]; }); currentPlayerIndex=0; myPlayerId=0; gameFinished=false; inReach=false; DOM.reachBadge.style.display='none'; DOM.currentPlayerDisplay.textContent=`現在: ${players[0].name} の番`; updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); setMsg(`${players[0].name} の番です`); myTurn=true; suppressedReachOptions.clear(); updateCoinCounts(); }
+      function passToNext(){ if(currentMode!=='pass'||gameFinished) return; const nextIndex=(currentPlayerIndex+1)%players.length; DOM.passModalContent.innerHTML=`<h2>${players[currentPlayerIndex].name} の番が終わりました</h2><p>端末を <strong>${players[nextIndex].name}</strong> に渡してください</p><button class="btn" id="passOkBtn">OK（${players[nextIndex].name} の番を開始）</button>`; DOM.passModal.style.display='flex'; document.getElementById('passOkBtn').addEventListener('click',()=>{ DOM.passModal.style.display='none'; currentPlayerIndex=nextIndex; myPlayerId=nextIndex; myTurn=true; inReach=false; DOM.reachBadge.style.display='none'; DOM.currentPlayerDisplay.textContent=`現在: ${players[nextIndex].name} の番`; renderHand(); renderMyDiscard(); renderOpponents(); updateBox(); setMsg(`${players[nextIndex].name} の番です`); }); }
 
-      function newCpuGame(fullReset=false){
-        if(fullReset){ totalPoints=300; coinCounts = {...INITIAL_COIN_COUNTS}; renderCoins(); lastWinnerIndex=null; }
-        box=createBox();
-        players=[{name:'あなた',hand:box.splice(0,8),discard:[],points:totalPoints},{name:'CPU',hand:box.splice(0,8),discard:[],points:300}];
-        playerReachState = [false, false]; myPlayerId=0;
-        if(lastWinnerIndex !== null) currentPlayerIndex = lastWinnerIndex;
-        else currentPlayerIndex = Math.floor(Math.random()*2);
-        gameFinished=false; inReach=false; myTurn=(currentPlayerIndex===0);
-        DOM.opponentArea.style.display='block'; DOM.myDiscardArea.style.display='block';
-        DOM.reachBadge.style.display='none'; DOM.opponentReachBadge.style.display='none';
-        updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); updateTurnDisplay();
-        if(!myTurn) setTimeout(cpuTurn,800);
-        suppressedReachOptions.clear(); renderCoins();
-      }
+      function newCpuGame(fullReset=false){ if(fullReset){ totalPoints=300; coinCounts = {...INITIAL_COIN_COUNTS}; renderCoins(); } box=createBox(); players=[{name:'あなた',hand:box.splice(0,8),discard:[],points:totalPoints},{name:'CPU',hand:box.splice(0,8),discard:[],points:300}]; myPlayerId=0; currentPlayerIndex=Math.floor(Math.random()*2); gameFinished=false; inReach=false; myTurn=(currentPlayerIndex===0); DOM.opponentArea.style.display='block'; DOM.myDiscardArea.style.display='block'; DOM.reachBadge.style.display='none'; updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); updateTurnDisplay(); if(!myTurn) setTimeout(cpuTurn,1000); suppressedReachOptions.clear(); renderCoins(); }
+      function cpuTurn(){ if(gameFinished||currentPlayerIndex!==1) return; const id=box.pop(); players[1].hand.push(id); updateBox(); if(players[1].hand.length===9){ const yaku=checkYaku(players[1].hand); if(yaku){ cpuWin(yaku); return; } const counts=getCounts(players[1].hand); let min=10,cands=[]; counts.forEach((c,i)=>{ if(c>0&&c<min){ min=c; cands=[i]; } else if(c===min) cands.push(i); }); const discardId=cands[Math.floor(Math.random()*cands.length)]; players[1].hand.splice(players[1].hand.indexOf(discardId),1); players[1].discard.push(discardId); setMsg(`CPUが${PIECE_TYPES[discardId].name}を捨てました`); renderOpponents(); } nextCpuTurn(); }
+      function nextCpuTurn(){ if(gameFinished) return; currentPlayerIndex=(currentPlayerIndex+1)%2; myTurn=(currentPlayerIndex===0); renderOpponents(); updateTurnDisplay(); if(!myTurn) setTimeout(cpuTurn,1000); else if(!inReach && getMyHand().length===8){ const opts=getReachOptions(getMyHand()); if(opts.length>0) showReachOptions(opts); } }
+      function cpuWin(yaku){ gameFinished=true; inReach=false; applyPoints(1,yaku.pts,'tsumo'); totalPoints=players[0].points; updateCoinCounts(); renderOpponents(); showResult(false,yaku); }
 
-      function cpuTurn(){
-        if(gameFinished || currentPlayerIndex!==1) return;
-        if(box.length===0) return;
-        const id=box.pop(); players[1].hand.push(id); updateBox();
-        if(players[1].hand.length===9){
-          const yaku=checkYaku(players[1].hand);
-          if(yaku){ cpuWin(yaku); return; }
-          const counts=getCounts(players[1].hand);
-          let min=10,cands=[];
-          counts.forEach((c,i)=>{ if(c>0&&c<min){ min=c; cands=[i]; } else if(c===min) cands.push(i); });
-          const discardId=cands[Math.floor(Math.random()*cands.length)];
-          players[1].hand.splice(players[1].hand.indexOf(discardId),1);
-          players[1].discard.push(discardId);
-          setMsg(`CPUが${PIECE_TYPES[discardId].name}を捨てました`);
-          if(!playerReachState[1] && players[1].hand.length===8){
-            const opts = getReachOptions(players[1].hand);
-            if(opts.length > 0 && Math.random() < 0.6) {
-              const chosen = opts[Math.floor(Math.random()*opts.length)];
-              playerReachState[1] = true;
-              setMsg(`CPUがリーチ！ 必要牌: ${PIECE_TYPES[chosen.needPieceId].name}`);
-            }
-          }
-          renderOpponents();
-        }
-        nextCpuTurn();
-      }
-
-      function nextCpuTurn(){
-        if(gameFinished) return;
-        currentPlayerIndex=(currentPlayerIndex+1)%2; myTurn=(currentPlayerIndex===0);
-        renderOpponents(); updateTurnDisplay();
-        if(!myTurn) setTimeout(cpuTurn,800);
-        else if(!inReach && getMyHand().length===8){ const opts=getReachOptions(getMyHand()); if(opts.length>0) showReachOptions(opts); }
-      }
-
-      function cpuWin(yaku){ gameFinished=true; inReach=false; lastWinnerIndex = 1; playerReachState = [false, false]; applyPoints(1,yaku.pts,'self'); totalPoints=players[0].points; updateCoinCounts(); renderOpponents(); showResult(false,yaku); }
-
-      // ---- オンライン対戦 ----
-      function createRoom(){ const code=document.getElementById('roomCodeInput').value.trim(); if(!/^\d{4,6}$/.test(code)){ setMsg('合言葉は4〜6桁の数字',false); return; } isHost=true; peer=new Peer(code); peer.on('open',()=>{ DOM.connectionStatus.textContent=`部屋作成: ${code}`; }); peer.on('connection',c=>{ conn=c; conn.on('data',data=>handleHostMsg(data)); conn.on('open',()=>{ DOM.connectionStatus.textContent='接続完了'; DOM.startOnlineGameBtn.style.display='inline-block'; }); }); }
-      function joinRoom(){ const code=document.getElementById('roomCodeInput').value.trim(); if(!code) return; isHost=false; peer=new Peer(); peer.on('open',()=>{ conn=peer.connect(code); conn.on('data',data=>handleGuestMsg(data)); conn.on('open',()=>{ DOM.connectionStatus.textContent='接続完了'; }); }); }
-
+      function createRoom(){ const code=document.getElementById('roomCodeInput').value.trim(); if(!/^\d{4,6}$/.test(code)){ setMsg('合言葉は4〜6桁の数字',false); return; } isHost=true; peer=new Peer(code); peer.on('open',()=>{ DOM.connectionStatus.textContent=`部屋作成: ${code}`; }); peer.on('connection',c=>{ conn=c; conn.on('data',data=>handleOpponentMessage(data)); conn.on('open',()=>{ DOM.connectionStatus.textContent='接続完了'; DOM.startOnlineGameBtn.style.display='inline-block'; }); }); }
+      function joinRoom(){ const code=document.getElementById('roomCodeInput').value.trim(); if(!code) return; isHost=false; peer=new Peer(); peer.on('open',()=>{ conn=peer.connect(code); conn.on('data',data=>handleOpponentMessage(data)); conn.on('open',()=>{ DOM.connectionStatus.textContent='接続完了'; }); }); }
       function startOnlineGame(){
-        if(!conn||!conn.open) return;
-        box=createBox();
-        const myHand=box.splice(0,8);
-        const oppHand=box.splice(0,8);
-        players=[ {name:'ホスト',hand:myHand,discard:[],points:300}, {name:'ゲスト',hand:oppHand,discard:[],points:300} ];
-        if(isHost){ myPlayerId=0; } else { myPlayerId=1; [players[0], players[1]] = [players[1], players[0]]; }
-        playerReachState = [false, false];
-        currentPlayerIndex=0; myTurn=isHost; gameFinished=false;
+        if(!conn||!conn.open) return; box=createBox(); const myHand=box.splice(0,8); const oppHand=box.splice(0,8);
+        players=[ isHost?{name:'あなた',hand:myHand,discard:[],points:300}:{name:'相手',hand:oppHand,discard:[],points:300}, isHost?{name:'相手',hand:oppHand,discard:[],points:300}:{name:'あなた',hand:myHand,discard:[],points:300} ];
+        myPlayerId=isHost?0:1; currentPlayerIndex=0; myTurn=isHost; gameFinished=false;
         totalPoints = 300; coinCounts = {...INITIAL_COIN_COUNTS}; renderCoins();
         DOM.startOnlineGameBtn.style.display='none'; DOM.opponentArea.style.display='block'; DOM.myDiscardArea.style.display='block';
-        DOM.reachBadge.style.display='none'; DOM.opponentReachBadge.style.display='none';
         conn.send({type:'start', hand:isHost?oppHand:myHand, points:300});
         updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); updateTurnDisplay();
         suppressedReachOptions.clear();
       }
-
-      function handleHostMsg(data){
-        if(data.type==='draw'){
-          const pid = (myPlayerId===0?1:0);
-          if(players[pid].hand.length !== 8) return;
-          const id = box.pop(); players[pid].hand.push(id); updateBox();
-          const yaku = checkYaku(players[pid].hand);
-          if(yaku){ applyPoints(pid, yaku.pts, 'self'); gameFinished=true; broadcastState(); conn.send({type:'gameOver', winnerId:pid, yaku:yaku}); if(pid===myPlayerId) showResult(true, yaku); else showResult(false, yaku); return; }
-          currentPlayerIndex = pid; broadcastState();
-        } else if(data.type==='discard'){
-          const pid = (myPlayerId===0?1:0);
-          players[pid].hand = data.hand; players[pid].discard = data.discard;
-          currentPlayerIndex = (currentPlayerIndex+1)%2; broadcastState();
-        } else if(data.type==='ron'){
-          const yaku = data.yaku; const from = data.from; const pid = (myPlayerId===0?1:0);
-          applyPoints(pid, yaku.pts, 'ron', from); gameFinished=true; broadcastState();
-          conn.send({type:'gameOver', winnerId:pid, yaku:yaku});
-          if(pid===myPlayerId) showResult(true, yaku); else showResult(false, yaku);
-        } else if(data.type==='win'){
-          const yaku = data.yaku; const method = data.method; const pid = (myPlayerId===0?1:0);
-          if(method==='ron') applyPoints(pid, yaku.pts, 'ron'); else applyPoints(pid, yaku.pts, 'self');
-          gameFinished=true; broadcastState();
-          conn.send({type:'gameOver', winnerId:pid, yaku:yaku});
-          if(pid===myPlayerId) showResult(true, yaku); else showResult(false, yaku);
-        }
+      function showQR(){ qrHost=true; isHost=true; peer=new Peer(); peer.on('open',(id)=>{ DOM.qrCodeContainer.innerHTML=''; new QRCode(DOM.qrCodeContainer,{text:id,width:280,height:280,correctLevel:QRCode.CorrectLevel.L}); DOM.displayedPeerId.textContent=`ID: ${id}`; DOM.qrModal.style.display='flex'; DOM.qrConnectionStatus.textContent='相手がIDを入力して接続するのを待っています...'; }); peer.on('connection',(c)=>{ conn=c; conn.on('data',data=>handleOpponentMessage(data)); conn.on('open',()=>{ DOM.qrConnectionStatus.textContent='接続完了'; DOM.startQrGameBtn.style.display='inline-block'; }); }); }
+      function connectToQrPeer(){ const peerId=DOM.qrPeerIdInput.value.trim(); if(!peerId) return; qrHost=false; isHost=false; peer=new Peer(); peer.on('open',()=>{ conn=peer.connect(peerId); conn.on('data',data=>handleOpponentMessage(data)); conn.on('open',()=>{ DOM.qrConnectionStatus.textContent='接続完了'; }); }); }
+      function startQrGame(){
+        if(!conn||!conn.open) return; box=createBox(); const myHand=box.splice(0,8); const oppHand=box.splice(0,8);
+        players=[ qrHost?{name:'あなた',hand:myHand,discard:[],points:300}:{name:'相手',hand:oppHand,discard:[],points:300}, qrHost?{name:'相手',hand:oppHand,discard:[],points:300}:{name:'あなた',hand:myHand,discard:[],points:300} ];
+        myPlayerId=qrHost?0:1; currentPlayerIndex=0; myTurn=qrHost; gameFinished=false;
+        totalPoints = 300; coinCounts = {...INITIAL_COIN_COUNTS}; renderCoins();
+        DOM.startQrGameBtn.style.display='none'; DOM.opponentArea.style.display='block'; DOM.myDiscardArea.style.display='block';
+        conn.send({type:'start', hand:qrHost?oppHand:myHand, points:300});
+        updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); updateTurnDisplay();
+        suppressedReachOptions.clear();
       }
-
-      function handleGuestMsg(data){
-        if(data.type==='start'){
-          box=createBox(); const oppHand=data.hand; const myHand=box.splice(0,8);
-          players=[{name:'相手',hand:oppHand,discard:[],points:300},{name:'あなた',hand:myHand,discard:[],points:300}];
-          playerReachState = [false, false]; myPlayerId=1; currentPlayerIndex=0; myTurn=false; gameFinished=false;
-          totalPoints=300; coinCounts = {...INITIAL_COIN_COUNTS}; renderCoins();
-          DOM.opponentArea.style.display='block'; DOM.myDiscardArea.style.display='block';
-          DOM.reachBadge.style.display='none'; DOM.opponentReachBadge.style.display='none';
-          updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); updateTurnDisplay();
-          suppressedReachOptions.clear();
-        } else if(data.type==='state'){
-          players.forEach((p, idx) => { const pd = data.players[idx]; if(pd){ p.points = pd.points; p.hand = pd.hand; p.discard = pd.discard; } });
-          currentPlayerIndex = data.currentTurn; gameFinished = data.gameFinished;
-          updateBox(); renderOpponents(); renderMyDiscard(); renderHand();
-          if(gameFinished) return;
-          if(currentPlayerIndex===myPlayerId){ setMsg('あなたの番です'); if(!inReach && getMyHand().length===8){ const opts = getReachOptions(getMyHand()); if(opts.length>0) showReachOptions(opts); } }
-          else { setMsg('相手の番です'); }
-        } else if(data.type==='gameOver'){
-          const {winnerId, yaku} = data;
-          if(winnerId===myPlayerId) showResult(true, yaku); else showResult(false, yaku);
-          gameFinished=true;
-        }
+      function handleOpponentMessage(data){
+        if(data.type==='start'){ if(isHost) return; box=createBox(); const oppHand=data.hand; const myHand=box.splice(0,8); players=[{name:'相手',hand:oppHand,discard:[],points:300},{name:'あなた',hand:myHand,discard:[],points:300}]; myPlayerId=1; currentPlayerIndex=0; myTurn=false; gameFinished=false; totalPoints=300; coinCounts = {...INITIAL_COIN_COUNTS}; renderCoins(); DOM.opponentArea.style.display='block'; DOM.myDiscardArea.style.display='block'; updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); updateTurnDisplay(); suppressedReachOptions.clear(); }
+        else if(data.type==='draw'){ const opp=players[1-myPlayerId]; opp.hand.push(data.pieceId); if(data.boxRemaining!==undefined) box=Array(data.boxRemaining).fill(0); updateBox(); renderOpponents(); myTurn=true; currentPlayerIndex=myPlayerId; updateTurnDisplay(); }
+        else if(data.type==='discard'){ const opp=players[1-myPlayerId]; opp.hand=data.hand; opp.discard=data.discard; renderOpponents(); myTurn=true; currentPlayerIndex=myPlayerId; updateTurnDisplay(); }
+        else if(data.type==='win'){ const yaku=data.yaku; const method=data.method; if(method==='ron'){ applyPoints(1-myPlayerId,yaku.pts,'ron'); } else { applyPoints(1-myPlayerId,yaku.pts,'tsumo'); } totalPoints=players[myPlayerId].points; updateCoinCounts(); renderOpponents(); showResult(false,yaku); gameFinished=true; myTurn=false; }
       }
-
-      function broadcastState(){
-        if(!isHost) return;
-        const state = { type:'state', players: players.map(p=>({name:p.name, points:p.points, hand:p.hand, discard:p.discard})), boxRemaining: box.length, currentTurn: currentPlayerIndex, gameFinished: gameFinished };
-        conn.send(state);
-        renderOpponents(); renderMyDiscard(); renderHand(); updateBox();
-        if(!gameFinished){ if(currentPlayerIndex===myPlayerId) setMsg('あなたの番です'); else setMsg('相手の番です'); }
-      }
-
       function sendToOpponent(data){ if(conn&&conn.open) conn.send(data); }
-
-      function showQR(){ qrHost=true; isHost=true; peer=new Peer(); peer.on('open',(id)=>{ DOM.qrCodeContainer.innerHTML=''; new QRCode(DOM.qrCodeContainer,{text:id,width:280,height:280,correctLevel:QRCode.CorrectLevel.L}); DOM.displayedPeerId.textContent=`ID: ${id}`; DOM.qrModal.style.display='flex'; DOM.qrConnectionStatus.textContent='相手がIDを入力して接続するのを待っています...'; }); peer.on('connection',(c)=>{ conn=c; conn.on('data',data=>handleHostMsg(data)); conn.on('open',()=>{ DOM.qrConnectionStatus.textContent='接続完了'; DOM.startQrGameBtn.style.display='inline-block'; }); }); }
-      function connectToQrPeer(){ const peerId=DOM.qrPeerIdInput.value.trim(); if(!peerId) return; qrHost=false; isHost=false; peer=new Peer(); peer.on('open',()=>{ conn=peer.connect(peerId); conn.on('data',data=>handleGuestMsg(data)); conn.on('open',()=>{ DOM.qrConnectionStatus.textContent='接続完了'; }); }); }
-      function startQrGame(){ startOnlineGame(); }
 
       function applyPoints(winnerIdx, yakuPts, method, fromIdx=null){
         players[winnerIdx].points+=yakuPts;
@@ -551,13 +488,7 @@
         totalPoints=players[myPlayerId].points; updateCoinCounts();
       }
 
-      function winGame(yaku, method, fromIdx=null){
-        gameFinished=true; inReach=false; DOM.reachBadge.style.display='none';
-        playerReachState = new Array(players.length).fill(false); updateReachDisplay();
-        lastWinnerIndex = myPlayerId;
-        applyPoints(myPlayerId, yaku.pts, method, fromIdx);
-        renderOpponents(); showResult(true, yaku);
-      }
+      function winGame(yaku, method, fromIdx=null){ gameFinished=true; inReach=false; DOM.reachBadge.style.display='none'; applyPoints(myPlayerId, yaku.pts, method, fromIdx); renderOpponents(); showResult(true, yaku); }
 
       function showReachOptions(opts){
         DOM.reachModalContent.innerHTML='<h3>リーチしますか？</h3><p>可能な役:</p>';
@@ -568,38 +499,25 @@
           cbLabel.innerHTML = '<input type="checkbox" class="reach-checkbox"> もう表示しない'; div.appendChild(cbLabel);
           const cb = cbLabel.querySelector('input');
           cb.addEventListener('change', (e) => { if (e.target.checked) { if (confirm('この組み合わせをもう表示しませんか？\n（設定から再度オンにできます）')) { suppressedReachOptions.add(`${opt.yakuName}_${opt.needPieceId}`); } else { e.target.checked = false; } } });
-          div.addEventListener('click', (e) => { if (e.target.tagName === 'INPUT' || e.target.tagName === 'LABEL') return; inReach=true; reachNeedPieceIds=[opt.needPieceId]; playerReachState[myPlayerId]=true; updateReachDisplay(); DOM.reachModal.style.display='none'; DOM.reachBadge.style.display='block'; setMsg(`リーチ: ${opt.yakuName}`); if(currentMode==='online') sendToOpponent({type:'reach'}); });
+          div.addEventListener('click', (e) => { if (e.target.tagName === 'INPUT' || e.target.tagName === 'LABEL') return; inReach=true; reachNeedPieceIds=[opt.needPieceId]; DOM.reachModal.style.display='none'; DOM.reachBadge.style.display='block'; setMsg(`リーチ: ${opt.yakuName}`); });
           DOM.reachModalContent.appendChild(div);
         });
         const cancelBtn=document.createElement('button'); cancelBtn.className='btn'; cancelBtn.textContent='いいえ'; cancelBtn.addEventListener('click',()=>{ DOM.reachModal.style.display='none'; }); DOM.reachModalContent.appendChild(cancelBtn); DOM.reachModal.style.display='flex';
       }
 
       function showResult(winner, yaku){
-        const myPoints=players[myPlayerId].points;
-        const msg=winner?`🎉 チロル！ ${players[myPlayerId].name}の勝ち！ ${yaku.name} (+${yaku.pts}pt)`:`😢 ${players[myPlayerId].name}の負け。 ${yaku.name} (-${yaku.pts}pt)`;
-        let continueBtn='';
-        if(currentMode==='cpu'||currentMode==='pass'){
-          const anyoneZero=players.some(p=>p.points<=0);
-          if(anyoneZero){ const loser=players.find(p=>p.points<=0); continueBtn=`<p>${loser.name}のポイントが0になりました。ゲーム終了！</p>`; }
-          else { continueBtn=`<button class="btn" id="continueBtn">次のラウンドへ</button>`; }
-        }
-        DOM.resultModalContent.innerHTML=`<h2>${msg}</h2><p>現在のポイント: ${players.map(p=>p.name+': '+p.points+'pt').join(', ')}</p>${continueBtn}`;
-        DOM.resultModal.style.display='flex';
-        const contBtn=document.getElementById('continueBtn');
-        if(contBtn) contBtn.addEventListener('click',()=>{ DOM.resultModal.style.display='none'; startNewRound(winner?0:1); });
-        else { setTimeout(()=>{ DOM.resultModal.style.display='none'; },2000); }
+        const myPoints=players[myPlayerId].points; const msg=winner?`🎉 ${players[myPlayerId].name}の勝ち！ ${yaku.name} (+${yaku.pts}pt)`:`😢 ${players[myPlayerId].name}の負け。 ${yaku.name} (-${yaku.pts}pt)`;
+        let continueBtn=''; if(currentMode==='cpu'||currentMode==='pass'){ const anyoneZero=players.some(p=>p.points<=0); if(anyoneZero){ const loser=players.find(p=>p.points<=0); continueBtn=`<p>${loser.name}のポイントが0になりました。ゲーム終了！</p>`; } else { continueBtn=`<button class="btn" id="continueBtn">次のラウンドへ</button>`; } }
+        DOM.resultModalContent.innerHTML=`<h2>${msg}</h2><p>現在のポイント: ${players.map(p=>p.name+': '+p.points+'pt').join(', ')}</p>${continueBtn}`; DOM.resultModal.style.display='flex';
+        const contBtn=document.getElementById('continueBtn'); if(contBtn) contBtn.addEventListener('click',()=>{ DOM.resultModal.style.display='none'; startNewRound(winner?myPlayerId:(currentMode==='cpu'?1:0)); }); else { setTimeout(()=>{ DOM.resultModal.style.display='none'; },2000); }
         suppressedReachOptions.clear();
       }
 
       DOM.passPlayerCount.addEventListener('change',()=>{ const count=parseInt(DOM.passPlayerCount.value); const container=document.getElementById('passNameInputs'); let html=''; for(let i=1;i<=count;i++) html+=`<input class="room-input" type="text" placeholder="プレイヤー${i}の名前" id="passName${i}" style="margin:3px;"><br>`; container.innerHTML=html; });
 
       function switchMode(mode){
-        currentMode=mode;
-        DOM.onlineArea.style.display='none'; DOM.qrArea.style.display='none'; DOM.passArea.style.display='none';
-        DOM.startCpuGameBtn.style.display='none'; DOM.opponentArea.style.display='none'; DOM.passNextBtn.style.display='none';
-        DOM.currentPlayerDisplay.textContent='';
-        document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
-        if(peer){ peer.destroy(); peer=null; conn=null; }
+        currentMode=mode; DOM.onlineArea.style.display='none'; DOM.qrArea.style.display='none'; DOM.passArea.style.display='none'; DOM.startCpuGameBtn.style.display='none'; DOM.opponentArea.style.display='none'; DOM.passNextBtn.style.display='none'; DOM.currentPlayerDisplay.textContent='';
+        document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active')); if(peer){ peer.destroy(); peer=null; conn=null; }
         if(mode==='cpu'){ DOM.startCpuGameBtn.style.display='inline-block'; document.getElementById('cpuModeBtn').classList.add('active'); }
         else if(mode==='online'){ DOM.onlineArea.style.display='block'; document.getElementById('onlineModeBtn').classList.add('active'); }
         else if(mode==='qr'){ DOM.qrArea.style.display='block'; document.getElementById('qrModeBtn').classList.add('active'); }
