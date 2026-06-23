@@ -330,7 +330,6 @@
         DOM.opponentDiscardHistory.innerHTML=''; DOM.opponentArea.style.display='block';
         let oppFound = false;
         players.forEach((p, idx) => { if(idx === myPlayerId) return; oppFound = true; DOM.opponentHandCount.textContent = p.hand.length;
-          // 相手のリーチ表示
           if(opponentInReach) { DOM.opponentReachBadge.style.display = 'inline'; } else { DOM.opponentReachBadge.style.display = 'none'; }
           p.discard.forEach((id, i) => { const chip = document.createElement('div'); chip.className = 'discard-chip'; const img = document.createElement('img'); img.src = PIECE_TYPES[id].img; img.style.width = '100%'; chip.style.borderColor = PIECE_TYPES[id].borderColor; if(i === p.discard.length - 1) { chip.classList.add('latest'); chip.addEventListener('click', () => ronRequest(id, idx)); } chip.appendChild(img); DOM.opponentDiscardHistory.appendChild(chip); }); });
         if(!oppFound) DOM.opponentArea.style.display='none';
@@ -489,6 +488,11 @@
           opponentInReach = true;
           DOM.opponentReachBadge.style.display = 'inline';
           setMsg('相手がリーチを宣言しました！');
+          // リーチ宣言が先に届いた場合でも手番を正しく設定
+          if(currentPlayerIndex !== myPlayerId) {
+            currentPlayerIndex = myPlayerId;
+            updateTurnDisplay();
+          }
         }
         else if(data.type==='win'){
           const yaku=data.yaku; const method=data.method;
@@ -498,7 +502,7 @@
           gameFinished=true;
         }
         else if(data.type==='newRound'){
-          DOM.resultModal.style.display = 'none'; // 相手から新ラウンドが来たら閉じる
+          DOM.resultModal.style.display = 'none';
           box = data.box;
           const oppHand = data.hand;
           players[0].hand = oppHand;
