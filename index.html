@@ -238,7 +238,6 @@
         gameResetBtn: document.getElementById('gameResetBtn'),
       };
 
-      // 設定モーダル
       document.getElementById('settingsBtn').addEventListener('click', () => {
         DOM.settingsModalContent.innerHTML = `<h3>⚙️ 設定</h3><div style="margin:10px 0;"><label><input type="checkbox" id="settingsSoundCheck" ${soundEnabled?'checked':''}> 効果音を有効にする</label></div><button class="btn" id="resetReachSuppressBtn">🔄 リーチ表示をリセット</button><p style="font-size:0.8rem; color:#8b5a2b; margin-top:8px;">リセットすると、非表示にしたリーチの選択肢が再表示されます。</p><button class="btn" id="closeSettingsBtn" style="margin-top:8px;">閉じる</button>`;
         DOM.settingsModal.style.display='flex';
@@ -341,7 +340,6 @@
       let myTurn=false;
       function updateTurnDisplay(){ if(gameFinished) return; if(isMyTurn()) setMsg('あなたの番です'); else setMsg('相手の番です'); }
 
-      // ★ 修正されたdrawRequest ★
       function drawRequest(){
         if(!isMyTurn() || getMyHand().length!==8 || box.length===0) return;
         if(soundEnabled) DRAW_SOUND.play().catch(()=>{});
@@ -352,23 +350,10 @@
           updateBox(); renderHand();
           if(getMyHand().length===9){
             const yaku = checkYaku(getMyHand());
-            if(yaku){ winGame(yaku,'self'); }
-            else { setMsg('役がありません。捨てる牌を選んでください'); }
+            if(yaku){ winGame(yaku,'self'); } else { setMsg('役がありません。捨てる牌を選んでください'); }
           }
         } else {
-          // オンライン：楽観的更新（すぐに自分の手札に追加して描画）
-          const id = box.pop();
-          if(typeof id !== 'number') return;
-          getMyHand().push(id);
-          updateBox(); renderHand();
-          // ホストにリクエストを送信（ホスト側でも同じidを引く）
-          sendToOpponent({type:'draw', pieceId: id});
-          // 9枚になったら役チェック
-          if(getMyHand().length===9){
-            const yaku = checkYaku(getMyHand());
-            if(yaku){ winGame(yaku,'self'); sendToOpponent({type:'win', yaku:yaku, method:'self'}); }
-            else { setMsg('役がありません。捨てる牌を選んでください'); }
-          }
+          sendToOpponent({type:'draw'});
         }
       }
 
@@ -497,10 +482,8 @@
       function handleHostMsg(data){
         if(data.type==='draw'){
           const pid = (myPlayerId===0?1:0);
-          const pieceId = data.pieceId;
-          players[pid].hand.push(pieceId);
-          box = box.filter(id => id !== pieceId); // 念のため重複削除
-          updateBox();
+          if(players[pid].hand.length !== 8) return;
+          const id = box.pop(); players[pid].hand.push(id); updateBox();
           const yaku = checkYaku(players[pid].hand);
           if(yaku){ applyPoints(pid, yaku.pts, 'self'); gameFinished=true; broadcastState(); conn.send({type:'gameOver', winnerId:pid, yaku:yaku}); if(pid===myPlayerId) showResult(true, yaku); else showResult(false, yaku); return; }
           currentPlayerIndex = pid; broadcastState();
