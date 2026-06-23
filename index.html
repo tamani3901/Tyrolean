@@ -180,7 +180,13 @@
         { name:'タブルセット', pts:150, check:c=>c.some(v=>v>=6) },
         { name:'ミルクセット', pts:120, check:c=>c[2]===3&&c[9]===3&&c[6]===3&&c.reduce((a,b)=>a+b,0)===9 },
         { name:'おもちセット', pts:120, check:c=>c[7]===3&&c[8]===3&&c[9]===3&&c.reduce((a,b)=>a+b,0)===9 },
-        { name:'ワンカラーセット', pts:90, check:(c,hand)=>hand.every(id=>PIECE_TYPES[id].color===PIECE_TYPES[hand[0]].color) },
+        { name:'ワンカラーセット', pts:90, check:(c,hand)=> {
+            if(hand.length !== 9) return false;
+            const color = PIECE_TYPES[hand[0]].color;
+            if(!hand.every(id => PIECE_TYPES[id].color === color)) return false;
+            const counts = getCounts(hand);
+            return counts.filter(v => v === 3).length === 3;
+        }},
         { name:'ドリンクセット', pts:90, check:c=>c[2]===3&&c[3]===3&&c[4]===3&&c.reduce((a,b)=>a+b,0)===9 },
         { name:'サクサクおやつセット', pts:90, check:c=>c[10]===3&&c[1]===3&&c[11]===3&&c.reduce((a,b)=>a+b,0)===9 },
         { name:'キャラセット', pts:75, check:c=>{ const allowed=[10,5,3,7,11]; const present=allowed.filter(i=>c[i]===3); return present.length===3 && allowed.every(i=>c[i]===3||c[i]===0) && c.reduce((a,b)=>a+b,0)===9; }},
@@ -368,7 +374,11 @@
           return;
         }
         const id=box.pop(); getMyHand().push(id); updateBox(); renderHand();
-        if(box.length===0){ setTimeout(()=>{ fullReset(); }, 500); return; }
+        if(box.length===0){ 
+            if(currentMode==='online' && isHost) sendToOpponent({type:'reset'});
+            fullReset(); 
+            return; 
+        }
         if(currentMode==='pass'){ if(getMyHand().length===9){ if(inReach){ const yaku=checkYaku(getMyHand()); if(yaku){ winGame(yaku,'tsumo'); return; } } else setMsg('役がありません。捨てる牌を選んでください'); } }
         else if(currentMode==='cpu'){ if(getMyHand().length===9){ if(inReach){ const yaku=checkYaku(getMyHand()); if(yaku){ winGame(yaku,'tsumo'); return; } } else setMsg('役がありません。捨てる牌を選んでください'); } }
         else { sendToOpponent({type:'draw', pieceId:id, boxRemaining:box.length}); if(getMyHand().length===9){ if(inReach){ const yaku=checkYaku(getMyHand()); if(yaku){ winGame(yaku,'tsumo'); sendToOpponent({type:'win', yaku:yaku, method:'tsumo'}); } } else setMsg('役がありません。捨てる牌を選んでください'); } }
@@ -381,7 +391,18 @@
         else setMsg('その牌ではアガれません', false);
       }
 
-      function fullReset(){ if(currentMode==='cpu'){ newCpuGame(true); } else if(currentMode==='pass'){ players.forEach(p=>{ p.points=300; p.coinCounts = cloneCoinCounts(INITIAL_COIN_COUNTS); }); startNewRoundPass(true); } else { players.forEach(p=>{ p.points=300; p.coinCounts = cloneCoinCounts(INITIAL_COIN_COUNTS); }); renderCoins(); } }
+      function fullReset(){ 
+        if(currentMode==='cpu'){ newCpuGame(true); } 
+        else if(currentMode==='pass'){ players.forEach(p=>{ p.points=300; p.coinCounts = cloneCoinCounts(INITIAL_COIN_COUNTS); }); startNewRoundPass(true); } 
+        else {
+          if(isHost) {
+            startOnlineGame(true);
+            sendToOpponent({type:'reset'});
+          } else {
+            sendToOpponent({type:'requestReset'});
+          }
+        } 
+      }
 
       function startNewRound(winnerIndex){
         box=createBox();
@@ -429,16 +450,20 @@
       function createRoom(){ const code=document.getElementById('roomCodeInput').value.trim(); if(!/^\d{4,6}$/.test(code)){ setMsg('合言葉は4〜6桁の数字',false); return; } isHost=true; peer=new Peer(code); peer.on('open',()=>{ DOM.connectionStatus.textContent=`部屋作成: ${code}`; }); peer.on('connection',c=>{ conn=c; conn.on('data',data=>handleOpponentMessage(data)); conn.on('open',()=>{ DOM.connectionStatus.textContent='接続完了'; DOM.startOnlineGameBtn.style.display='inline-block'; }); }); }
       function joinRoom(){ const code=document.getElementById('roomCodeInput').value.trim(); if(!code) return; isHost=false; peer=new Peer(); peer.on('open',()=>{ conn=peer.connect(code); conn.on('data',data=>handleOpponentMessage(data)); conn.on('open',()=>{ DOM.connectionStatus.textContent='接続完了'; }); }); }
 
-      function startOnlineGame(){
+      function startOnlineGame(isReset = false){
         if(!conn||!conn.open) return;
         box=createBox();
         const myHand=box.splice(0,8); const oppHand=box.splice(0,8);
-        players=[ isHost?{name:'あなた',hand:myHand,discard:[],points:300, coinCounts: cloneCoinCounts(INITIAL_COIN_COUNTS)}:{name:'相手',hand:oppHand,discard:[],points:300, coinCounts: cloneCoinCounts(INITIAL_COIN_COUNTS)},
-                  isHost?{name:'相手',hand:oppHand,discard:[],points:300, coinCounts: cloneCoinCounts(INITIAL_COIN_COUNTS)}:{name:'あなた',hand:myHand,discard:[],points:300, coinCounts: cloneCoinCounts(INITIAL_COIN_COUNTS)} ];
+        const myPoints = isReset ? 300 : (players[myPlayerId] ? sumCoinCounts(players[myPlayerId].coinCounts) : 300);
+        const oppPoints = isReset ? 300 : (players[1-myPlayerId] ? sumCoinCounts(players[1-myPlayerId].coinCounts) : 300);
+        const myCoin = isReset ? cloneCoinCounts(INITIAL_COIN_COUNTS) : (players[myPlayerId]?.coinCounts || cloneCoinCounts(INITIAL_COIN_COUNTS));
+        const oppCoin = isReset ? cloneCoinCounts(INITIAL_COIN_COUNTS) : (players[1-myPlayerId]?.coinCounts || cloneCoinCounts(INITIAL_COIN_COUNTS));
+        players=[ isHost?{name:'あなた',hand:myHand,discard:[],points:myPoints, coinCounts: myCoin}:{name:'相手',hand:oppHand,discard:[],points:oppPoints, coinCounts: oppCoin},
+                  isHost?{name:'相手',hand:oppHand,discard:[],points:oppPoints, coinCounts: oppCoin}:{name:'あなた',hand:myHand,discard:[],points:myPoints, coinCounts: myCoin} ];
         myPlayerId=isHost?0:1; currentPlayerIndex=0; gameFinished=false; inReach=false; opponentInReach=false;
         DOM.opponentReachBadge.style.display = 'none';
         DOM.startOnlineGameBtn.style.display='none'; DOM.opponentArea.style.display='block'; DOM.myDiscardArea.style.display='block';
-        conn.send({type:'start', hand:isHost?oppHand:myHand, box: box.slice()});
+        conn.send({type:'start', hand:isHost?oppHand:myHand, box: box.slice(), reset: isReset});
         updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); updateTurnDisplay();
         suppressedReachOptions.clear(); renderCoins();
       }
@@ -464,6 +489,10 @@
           if(isHost) return;
           box = data.box;
           players=[{name:'相手',hand:data.hand,discard:[],points:300, coinCounts: cloneCoinCounts(INITIAL_COIN_COUNTS)},{name:'あなた',hand:[],discard:[],points:300, coinCounts: cloneCoinCounts(INITIAL_COIN_COUNTS)}];
+          if(data.reset) {
+              players[0].coinCounts = cloneCoinCounts(INITIAL_COIN_COUNTS);
+              players[1].coinCounts = cloneCoinCounts(INITIAL_COIN_COUNTS);
+          }
           players[1].hand = box.splice(0, 8);
           myPlayerId=1; currentPlayerIndex=0; gameFinished=false; opponentInReach=false;
           DOM.opponentReachBadge.style.display = 'none';
@@ -488,7 +517,6 @@
           opponentInReach = true;
           DOM.opponentReachBadge.style.display = 'inline';
           setMsg('相手がリーチを宣言しました！');
-          // リーチ宣言が先に届いた場合でも手番を正しく設定
           if(currentPlayerIndex !== myPlayerId) {
             currentPlayerIndex = myPlayerId;
             updateTurnDisplay();
@@ -534,6 +562,20 @@
               const yaku=checkYaku(getMyHand());
               if(yaku) winGame(yaku,'tsumo');
             } else setMsg('役がありません。捨てる牌を選んでください');
+          }
+        }
+        else if(data.type==='reset'){
+          DOM.resultModal.style.display = 'none';
+          DOM.reachModal.style.display = 'none';
+          players.forEach(p=>{ p.points=300; p.coinCounts = cloneCoinCounts(INITIAL_COIN_COUNTS); });
+          if(isHost) startOnlineGame(true);
+          else sendToOpponent({type:'requestReset'});
+        }
+        else if(data.type==='requestReset'){
+          if(isHost) {
+            players.forEach(p=>{ p.points=300; p.coinCounts = cloneCoinCounts(INITIAL_COIN_COUNTS); });
+            startOnlineGame(true);
+            sendToOpponent({type:'reset'});
           }
         }
       }
@@ -652,7 +694,7 @@
       DOM.startCpuGameBtn.addEventListener('click', ()=>newCpuGame(true));
       document.getElementById('createRoomBtn').addEventListener('click', createRoom);
       document.getElementById('joinRoomBtn').addEventListener('click', joinRoom);
-      DOM.startOnlineGameBtn.addEventListener('click', startOnlineGame);
+      DOM.startOnlineGameBtn.addEventListener('click', ()=>startOnlineGame(false));
       document.getElementById('showQrBtn').addEventListener('click', showQR);
       document.getElementById('connectQrBtn').addEventListener('click', connectToQrPeer);
       document.getElementById('closeQrBtn').addEventListener('click', ()=>{ DOM.qrModal.style.display='none'; });
