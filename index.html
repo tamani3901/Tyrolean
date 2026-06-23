@@ -341,24 +341,34 @@
       let myTurn=false;
       function updateTurnDisplay(){ if(gameFinished) return; if(isMyTurn()) setMsg('あなたの番です'); else setMsg('相手の番です'); }
 
-      // 修正されたdrawRequest
+      // ★ 修正されたdrawRequest ★
       function drawRequest(){
         if(!isMyTurn() || getMyHand().length!==8 || box.length===0) return;
         if(soundEnabled) DRAW_SOUND.play().catch(()=>{});
         if(currentMode==='pass' || currentMode==='cpu'){
           const id = box.pop();
           if(typeof id !== 'number') return;
-          const hand = getMyHand();
-          hand.push(id);
-          updateBox();
-          renderHand();
-          if(hand.length===9){
-            const yaku = checkYaku(hand);
+          getMyHand().push(id);
+          updateBox(); renderHand();
+          if(getMyHand().length===9){
+            const yaku = checkYaku(getMyHand());
             if(yaku){ winGame(yaku,'self'); }
             else { setMsg('役がありません。捨てる牌を選んでください'); }
           }
         } else {
-          sendToOpponent({type:'draw'});
+          // オンライン：楽観的更新（すぐに自分の手札に追加して描画）
+          const id = box.pop();
+          if(typeof id !== 'number') return;
+          getMyHand().push(id);
+          updateBox(); renderHand();
+          // ホストにリクエストを送信（ホスト側でも同じidを引く）
+          sendToOpponent({type:'draw', pieceId: id});
+          // 9枚になったら役チェック
+          if(getMyHand().length===9){
+            const yaku = checkYaku(getMyHand());
+            if(yaku){ winGame(yaku,'self'); sendToOpponent({type:'win', yaku:yaku, method:'self'}); }
+            else { setMsg('役がありません。捨てる牌を選んでください'); }
+          }
         }
       }
 
@@ -396,7 +406,6 @@
         suppressedReachOptions.clear(); updateCoinCounts();
       }
 
-      // ---- 対面パス ----
       function startPassGame(){
         const count=parseInt(DOM.passPlayerCount.value); const names=[];
         for(let i=1;i<=count;i++){ const inp=document.getElementById(`passName${i}`); names.push(inp?inp.value.trim()||`プレイヤー${i}`:`プレイヤー${i}`); }
@@ -412,7 +421,6 @@
       function startNewRoundPass(fullResetPoints=false){ if(fullResetPoints) players.forEach(p=>p.points=300); box=createBox(); players.forEach(p=>{ p.hand=box.splice(0,8); p.discard=[]; }); playerReachState = new Array(players.length).fill(false); currentPlayerIndex=0; myPlayerId=0; gameFinished=false; inReach=false; DOM.reachBadge.style.display='none'; DOM.opponentReachBadge.style.display='none'; DOM.currentPlayerDisplay.textContent=`現在: ${players[0].name} の番`; updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); setMsg(`${players[0].name} の番です`); myTurn=true; suppressedReachOptions.clear(); updateCoinCounts(); }
       function passToNext(){ if(currentMode!=='pass'||gameFinished) return; const nextIndex=(currentPlayerIndex+1)%players.length; DOM.passModalContent.innerHTML=`<h2>${players[currentPlayerIndex].name} の番が終わりました</h2><p>端末を <strong>${players[nextIndex].name}</strong> に渡してください</p><button class="btn" id="passOkBtn">OK（${players[nextIndex].name} の番を開始）</button>`; DOM.passModal.style.display='flex'; document.getElementById('passOkBtn').addEventListener('click',()=>{ DOM.passModal.style.display='none'; currentPlayerIndex=nextIndex; myPlayerId=nextIndex; myTurn=true; inReach=false; DOM.reachBadge.style.display='none'; updateReachDisplay(); DOM.currentPlayerDisplay.textContent=`現在: ${players[nextIndex].name} の番`; renderHand(); renderMyDiscard(); renderOpponents(); updateBox(); setMsg(`${players[nextIndex].name} の番です`); }); }
 
-      // ---- CPU対戦 ----
       function newCpuGame(fullReset=false){
         if(fullReset){ totalPoints=300; coinCounts = {...INITIAL_COIN_COUNTS}; renderCoins(); lastWinnerIndex=null; }
         box=createBox();
@@ -427,6 +435,7 @@
         if(!myTurn) setTimeout(cpuTurn,800);
         suppressedReachOptions.clear(); renderCoins();
       }
+
       function cpuTurn(){
         if(gameFinished || currentPlayerIndex!==1) return;
         if(box.length===0) return;
@@ -453,6 +462,7 @@
         }
         nextCpuTurn();
       }
+
       function nextCpuTurn(){
         if(gameFinished) return;
         currentPlayerIndex=(currentPlayerIndex+1)%2; myTurn=(currentPlayerIndex===0);
@@ -460,6 +470,7 @@
         if(!myTurn) setTimeout(cpuTurn,800);
         else if(!inReach && getMyHand().length===8){ const opts=getReachOptions(getMyHand()); if(opts.length>0) showReachOptions(opts); }
       }
+
       function cpuWin(yaku){ gameFinished=true; inReach=false; lastWinnerIndex = 1; playerReachState = [false, false]; applyPoints(1,yaku.pts,'self'); totalPoints=players[0].points; updateCoinCounts(); renderOpponents(); showResult(false,yaku); }
 
       // ---- オンライン対戦 ----
@@ -486,8 +497,10 @@
       function handleHostMsg(data){
         if(data.type==='draw'){
           const pid = (myPlayerId===0?1:0);
-          if(players[pid].hand.length !== 8) return;
-          const id = box.pop(); players[pid].hand.push(id); updateBox();
+          const pieceId = data.pieceId;
+          players[pid].hand.push(pieceId);
+          box = box.filter(id => id !== pieceId); // 念のため重複削除
+          updateBox();
           const yaku = checkYaku(players[pid].hand);
           if(yaku){ applyPoints(pid, yaku.pts, 'self'); gameFinished=true; broadcastState(); conn.send({type:'gameOver', winnerId:pid, yaku:yaku}); if(pid===myPlayerId) showResult(true, yaku); else showResult(false, yaku); return; }
           currentPlayerIndex = pid; broadcastState();
@@ -543,7 +556,6 @@
 
       function sendToOpponent(data){ if(conn&&conn.open) conn.send(data); }
 
-      // ---- QR対戦 ----
       function showQR(){ qrHost=true; isHost=true; peer=new Peer(); peer.on('open',(id)=>{ DOM.qrCodeContainer.innerHTML=''; new QRCode(DOM.qrCodeContainer,{text:id,width:280,height:280,correctLevel:QRCode.CorrectLevel.L}); DOM.displayedPeerId.textContent=`ID: ${id}`; DOM.qrModal.style.display='flex'; DOM.qrConnectionStatus.textContent='相手がIDを入力して接続するのを待っています...'; }); peer.on('connection',(c)=>{ conn=c; conn.on('data',data=>handleHostMsg(data)); conn.on('open',()=>{ DOM.qrConnectionStatus.textContent='接続完了'; DOM.startQrGameBtn.style.display='inline-block'; }); }); }
       function connectToQrPeer(){ const peerId=DOM.qrPeerIdInput.value.trim(); if(!peerId) return; qrHost=false; isHost=false; peer=new Peer(); peer.on('open',()=>{ conn=peer.connect(peerId); conn.on('data',data=>handleGuestMsg(data)); conn.on('open',()=>{ DOM.qrConnectionStatus.textContent='接続完了'; }); }); }
       function startQrGame(){ startOnlineGame(); }
