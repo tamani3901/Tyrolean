@@ -224,15 +224,7 @@
       };
 
       document.getElementById('settingsBtn').addEventListener('click', () => {
-        DOM.settingsModalContent.innerHTML = `
-          <h3>⚙️ 設定</h3>
-          <div style="margin:10px 0;">
-            <label><input type="checkbox" id="settingsSoundCheck" ${soundEnabled ? 'checked' : ''}> 効果音を有効にする</label>
-          </div>
-          <button class="btn" id="resetReachSuppressBtn">🔄 リーチ表示をリセット</button>
-          <p style="font-size:0.8rem; color:#8b5a2b; margin-top:8px;">リセットすると、非表示にしたリーチの選択肢が再表示されます。</p>
-          <button class="btn" id="closeSettingsBtn" style="margin-top:8px;">閉じる</button>
-        `;
+        DOM.settingsModalContent.innerHTML = `<h3>⚙️ 設定</h3><div style="margin:10px 0;"><label><input type="checkbox" id="settingsSoundCheck" ${soundEnabled ? 'checked' : ''}> 効果音を有効にする</label></div><button class="btn" id="resetReachSuppressBtn">🔄 リーチ表示をリセット</button><p style="font-size:0.8rem; color:#8b5a2b; margin-top:8px;">リセットすると、非表示にしたリーチの選択肢が再表示されます。</p><button class="btn" id="closeSettingsBtn" style="margin-top:8px;">閉じる</button>`;
         DOM.settingsModal.style.display = 'flex';
         document.getElementById('settingsSoundCheck').addEventListener('change', (e) => { soundEnabled = e.target.checked; });
         document.getElementById('resetReachSuppressBtn').addEventListener('click', () => { suppressedReachOptions.clear(); setMsg('リーチ表示をリセットしました'); DOM.settingsModal.style.display = 'none'; });
@@ -269,26 +261,11 @@
         let dragSrcEl = null;
         container.querySelectorAll('.piece-slot:not(.empty)').forEach(slot => {
           slot.setAttribute('draggable', 'true');
-          slot.addEventListener('dragstart', function(e) {
-            dragSrcEl = this;
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/html', this.innerHTML);
-            this.classList.add('dragging');
-          });
+          slot.addEventListener('dragstart', function(e) { dragSrcEl = this; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/html', this.innerHTML); this.classList.add('dragging'); });
           slot.addEventListener('dragover', function(e) { if (e.preventDefault) e.preventDefault(); e.dataTransfer.dropEffect = 'move'; return false; });
           slot.addEventListener('dragenter', function(e) { this.classList.add('drag-over'); });
           slot.addEventListener('dragleave', function(e) { this.classList.remove('drag-over'); });
-          slot.addEventListener('drop', function(e) {
-            if (e.stopPropagation) e.stopPropagation();
-            if (dragSrcEl != this) {
-              const srcIndex = parseInt(dragSrcEl.dataset.index);
-              const dstIndex = parseInt(this.dataset.index);
-              [handArray[srcIndex], handArray[dstIndex]] = [handArray[dstIndex], handArray[srcIndex]];
-              setMyHand(handArray);
-              renderHand();
-            }
-            return false;
-          });
+          slot.addEventListener('drop', function(e) { if (e.stopPropagation) e.stopPropagation(); if (dragSrcEl != this) { const srcIndex = parseInt(dragSrcEl.dataset.index); const dstIndex = parseInt(this.dataset.index); [handArray[srcIndex], handArray[dstIndex]] = [handArray[dstIndex], handArray[srcIndex]]; setMyHand(handArray); renderHand(); } return false; });
           slot.addEventListener('dragend', function(e) { this.classList.remove('dragging'); container.querySelectorAll('.piece-slot').forEach(s => s.classList.remove('drag-over')); });
         });
       }
@@ -296,32 +273,9 @@
       function enableTouchSort(container, handArray) {
         let touchStartX, touchStartY, touchSrcIndex, touchDragging = false;
         container.querySelectorAll('.piece-slot:not(.empty)').forEach(slot => {
-          slot.addEventListener('touchstart', function(e) {
-            touchSrcIndex = parseInt(this.dataset.index); touchDragging = false;
-            touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY;
-            this.classList.add('dragging');
-          });
-          slot.addEventListener('touchmove', function(e) {
-            if (!touchDragging && (Math.abs(e.touches[0].clientX - touchStartX) > 10 || Math.abs(e.touches[0].clientY - touchStartY) > 10)) touchDragging = true;
-            if (touchDragging) e.preventDefault();
-          });
-          slot.addEventListener('touchend', function(e) {
-            this.classList.remove('dragging');
-            if (touchDragging) {
-              const touch = e.changedTouches[0];
-              const target = document.elementFromPoint(touch.clientX, touch.clientY);
-              if (target && target.closest('.piece-slot')) {
-                const dstSlot = target.closest('.piece-slot');
-                const dstIndex = parseInt(dstSlot.dataset.index);
-                if (dstIndex != touchSrcIndex && dstIndex >= 0 && dstIndex < handArray.length) {
-                  [handArray[touchSrcIndex], handArray[dstIndex]] = [handArray[dstIndex], handArray[touchSrcIndex]];
-                  setMyHand(handArray);
-                  renderHand();
-                }
-              }
-            }
-            touchDragging = false;
-          });
+          slot.addEventListener('touchstart', function(e) { touchSrcIndex = parseInt(this.dataset.index); touchDragging = false; touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; this.classList.add('dragging'); });
+          slot.addEventListener('touchmove', function(e) { if (!touchDragging && (Math.abs(e.touches[0].clientX - touchStartX) > 10 || Math.abs(e.touches[0].clientY - touchStartY) > 10)) touchDragging = true; if (touchDragging) e.preventDefault(); });
+          slot.addEventListener('touchend', function(e) { this.classList.remove('dragging'); if (touchDragging) { const touch = e.changedTouches[0]; const target = document.elementFromPoint(touch.clientX, touch.clientY); if (target && target.closest('.piece-slot')) { const dstSlot = target.closest('.piece-slot'); const dstIndex = parseInt(dstSlot.dataset.index); if (dstIndex != touchSrcIndex && dstIndex >= 0 && dstIndex < handArray.length) { [handArray[touchSrcIndex], handArray[dstIndex]] = [handArray[dstIndex], handArray[touchSrcIndex]]; setMyHand(handArray); renderHand(); } } } touchDragging = false; });
         });
       }
 
@@ -361,12 +315,7 @@
         setMsg(`${PIECE_TYPES[piece].name}を捨てました`);
         if(currentMode==='pass'){ if(!inReach && getMyHand().length===8){ const opts=getReachOptions(getMyHand()); if(opts.length>0) showReachOptions(opts); } renderOpponents(); }
         else if(currentMode==='cpu'){ nextCpuTurn(); }
-        else {
-          sendToOpponent({type:'discard', pieceId:piece, hand:getMyHand(), discard:players[myPlayerId].discard});
-          currentPlayerIndex = 1 - myPlayerId;
-          updateTurnDisplay();
-          if(!inReach && getMyHand().length===8){ const opts=getReachOptions(getMyHand()); if(opts.length>0) showReachOptions(opts); }
-        }
+        else { sendToOpponent({type:'discard', pieceId:piece, hand:getMyHand(), discard:players[myPlayerId].discard}); currentPlayerIndex = 1 - myPlayerId; updateTurnDisplay(); if(!inReach && getMyHand().length===8){ const opts=getReachOptions(getMyHand()); if(opts.length>0) showReachOptions(opts); } }
       }
 
       function renderMyDiscard(){ DOM.myDiscardHistory.innerHTML=''; getMyDiscard().forEach(id=>{ const chip=document.createElement('div'); chip.className='discard-chip'; const img=document.createElement('img'); img.src=PIECE_TYPES[id].img; img.style.width='100%'; chip.style.borderColor = PIECE_TYPES[id].borderColor; chip.appendChild(img); DOM.myDiscardHistory.appendChild(chip); }); }
@@ -375,9 +324,7 @@
         DOM.opponentDiscardHistory.innerHTML=''; DOM.opponentArea.style.display='block';
         let oppFound = false;
         players.forEach((p, idx) => { if(idx === myPlayerId) return; oppFound = true; DOM.opponentHandCount.textContent = p.hand.length;
-          p.discard.forEach((id, i) => { const chip = document.createElement('div'); chip.className = 'discard-chip'; const img = document.createElement('img'); img.src = PIECE_TYPES[id].img; img.style.width = '100%';
-            chip.style.borderColor = PIECE_TYPES[id].borderColor;
-            if(i === p.discard.length - 1) { chip.classList.add('latest'); chip.addEventListener('click', () => ronRequest(id, idx)); } chip.appendChild(img); DOM.opponentDiscardHistory.appendChild(chip); }); });
+          p.discard.forEach((id, i) => { const chip = document.createElement('div'); chip.className = 'discard-chip'; const img = document.createElement('img'); img.src = PIECE_TYPES[id].img; img.style.width = '100%'; chip.style.borderColor = PIECE_TYPES[id].borderColor; if(i === p.discard.length - 1) { chip.classList.add('latest'); chip.addEventListener('click', () => ronRequest(id, idx)); } chip.appendChild(img); DOM.opponentDiscardHistory.appendChild(chip); }); });
         if(!oppFound) DOM.opponentArea.style.display='none';
       }
 
@@ -387,25 +334,9 @@
       function transferCoins(fromPlayer, toPlayer, amount) {
         let remaining = amount;
         const take = {100:0, 50:0, 10:0, 5:0};
-        for (let denom of [100,50,10,5]) {
-          while (remaining >= denom && fromPlayer.coinCounts[denom] > 0) {
-            remaining -= denom;
-            fromPlayer.coinCounts[denom]--;
-            take[denom]++;
-          }
-        }
-        if (remaining > 0) {
-          for (let denom of [10,5]) {
-            while (remaining >= denom && fromPlayer.coinCounts[denom] > 0) {
-              remaining -= denom;
-              fromPlayer.coinCounts[denom]--;
-              take[denom]++;
-            }
-          }
-        }
-        for (let denom of [100,50,10,5]) {
-          toPlayer.coinCounts[denom] += take[denom];
-        }
+        for (let denom of [100,50,10,5]) { while (remaining >= denom && fromPlayer.coinCounts[denom] > 0) { remaining -= denom; fromPlayer.coinCounts[denom]--; take[denom]++; } }
+        if (remaining > 0) { for (let denom of [10,5]) { while (remaining >= denom && fromPlayer.coinCounts[denom] > 0) { remaining -= denom; fromPlayer.coinCounts[denom]--; take[denom]++; } } }
+        for (let denom of [100,50,10,5]) { toPlayer.coinCounts[denom] += take[denom]; }
         fromPlayer.points = sumCoinCounts(fromPlayer.coinCounts);
         toPlayer.points = sumCoinCounts(toPlayer.coinCounts);
       }
@@ -414,18 +345,7 @@
         DOM.coinDisplay.innerHTML = '';
         const coinCounts = players[myPlayerId].coinCounts;
         const denoms = [100,50,10,5];
-        denoms.forEach(d => {
-          if(coinCounts[d] > 0){
-            const stack = document.createElement('div'); stack.className='coin-stack';
-            for(let i=0; i<coinCounts[d]; i++){
-              const img = document.createElement('img'); img.src = IMAGE_BASE_URL + `coin${d}.png`; img.style.zIndex = i;
-              stack.appendChild(img);
-            }
-            const label = document.createElement('span'); label.className='coin-label'; label.textContent = `×${coinCounts[d]}`;
-            stack.appendChild(label);
-            DOM.coinDisplay.appendChild(stack);
-          }
-        });
+        denoms.forEach(d => { if(coinCounts[d] > 0){ const stack = document.createElement('div'); stack.className='coin-stack'; for(let i=0; i<coinCounts[d]; i++){ const img = document.createElement('img'); img.src = IMAGE_BASE_URL + `coin${d}.png`; img.style.zIndex = i; stack.appendChild(img); } const label = document.createElement('span'); label.className='coin-label'; label.textContent = `×${coinCounts[d]}`; stack.appendChild(label); DOM.coinDisplay.appendChild(stack); } });
       }
 
       function updateBox(){ DOM.boxRemaining.textContent=box.length; }
@@ -436,6 +356,12 @@
       function drawRequest(){
         if(!isMyTurn() || getMyHand().length!==8 || box.length===0) return;
         if(soundEnabled) DRAW_SOUND.play().catch(()=>{});
+        if(currentMode==='online' && !isHost) {
+          // ゲストはホストにドローリクエスト
+          sendToOpponent({type:'requestDraw'});
+          return;
+        }
+        // ホスト、CPU、パスモードは通常ドロー
         const id=box.pop(); getMyHand().push(id); updateBox(); renderHand();
         if(box.length===0){ setTimeout(()=>{ fullReset(); }, 500); return; }
         if(currentMode==='pass'){ if(getMyHand().length===9){ if(inReach){ const yaku=checkYaku(getMyHand()); if(yaku){ winGame(yaku,'tsumo'); return; } } else setMsg('役がありません。捨てる牌を選んでください'); } }
@@ -459,15 +385,9 @@
         if(currentMode==='pass') myPlayerId=winnerIndex;
         gameFinished=false; inReach=false; DOM.reachBadge.style.display='none';
         updateBox(); renderHand(); renderMyDiscard(); renderOpponents();
-        if(currentMode==='cpu'){
-          updateTurnDisplay();
-          if(currentPlayerIndex !== 0) setTimeout(cpuTurn,1000);
-        } else if(currentMode==='pass'){
-          DOM.currentPlayerDisplay.textContent=`現在: ${players[currentPlayerIndex].name} の番`;
-          setMsg(`${players[currentPlayerIndex].name} の番です`);
-        } else {
-          updateTurnDisplay();
-        }
+        if(currentMode==='cpu'){ updateTurnDisplay(); if(currentPlayerIndex !== 0) setTimeout(cpuTurn,1000); }
+        else if(currentMode==='pass'){ DOM.currentPlayerDisplay.textContent=`現在: ${players[currentPlayerIndex].name} の番`; setMsg(`${players[currentPlayerIndex].name} の番です`); }
+        else { updateTurnDisplay(); }
         suppressedReachOptions.clear(); renderCoins();
       }
 
@@ -485,9 +405,7 @@
       function passToNext(){ if(currentMode!=='pass'||gameFinished) return; const nextIndex=(currentPlayerIndex+1)%players.length; DOM.passModalContent.innerHTML=`<h2>${players[currentPlayerIndex].name} の番が終わりました</h2><p>端末を <strong>${players[nextIndex].name}</strong> に渡してください</p><button class="btn" id="passOkBtn">OK（${players[nextIndex].name} の番を開始）</button>`; DOM.passModal.style.display='flex'; document.getElementById('passOkBtn').addEventListener('click',()=>{ DOM.passModal.style.display='none'; currentPlayerIndex=nextIndex; myPlayerId=nextIndex; inReach=false; DOM.reachBadge.style.display='none'; DOM.currentPlayerDisplay.textContent=`現在: ${players[nextIndex].name} の番`; renderHand(); renderMyDiscard(); renderOpponents(); updateBox(); setMsg(`${players[nextIndex].name} の番です`); }); }
 
       function newCpuGame(fullReset=false){
-        if(fullReset && players.length>0) {
-          players.forEach(p=>{ p.points=300; p.coinCounts = cloneCoinCounts(INITIAL_COIN_COUNTS); });
-        }
+        if(fullReset && players.length>0) { players.forEach(p=>{ p.points=300; p.coinCounts = cloneCoinCounts(INITIAL_COIN_COUNTS); }); }
         box=createBox();
         players=[{name:'あなた',hand:box.splice(0,8),discard:[],points:300, coinCounts: cloneCoinCounts(INITIAL_COIN_COUNTS)},{name:'CPU',hand:box.splice(0,8),discard:[],points:300, coinCounts: cloneCoinCounts(INITIAL_COIN_COUNTS)}];
         myPlayerId=0; currentPlayerIndex=Math.floor(Math.random()*2); gameFinished=false; inReach=false;
@@ -535,10 +453,8 @@
       function handleOpponentMessage(data){
         if(data.type==='start'){
           if(isHost) return;
-          box = data.box; // 送られた残り山札をそのまま使う
-          const oppHand = data.hand; // 相手の手札＝参加者から見た相手の手札
-          players=[{name:'相手',hand:oppHand,discard:[],points:300, coinCounts: cloneCoinCounts(INITIAL_COIN_COUNTS)},{name:'あなた',hand:[],discard:[],points:300, coinCounts: cloneCoinCounts(INITIAL_COIN_COUNTS)}];
-          // 自分の手札は残り山札から8枚取る（ホスト側で既に双方の手札は抜かれているので、残りから取得）
+          box = data.box;
+          players=[{name:'相手',hand:data.hand,discard:[],points:300, coinCounts: cloneCoinCounts(INITIAL_COIN_COUNTS)},{name:'あなた',hand:[],discard:[],points:300, coinCounts: cloneCoinCounts(INITIAL_COIN_COUNTS)}];
           players[1].hand = box.splice(0, 8);
           myPlayerId=1; currentPlayerIndex=0; gameFinished=false;
           DOM.opponentArea.style.display='block'; DOM.myDiscardArea.style.display='block';
@@ -548,7 +464,7 @@
         else if(data.type==='draw'){
           const opp=players[1-myPlayerId];
           opp.hand.push(data.pieceId);
-          if(data.boxRemaining!==undefined) box = Array(data.boxRemaining).fill(0);
+          if(data.boxRemaining !== undefined) box = Array(data.boxRemaining).fill(0); // ゲスト側は参照しない
           updateBox(); renderOpponents();
         }
         else if(data.type==='discard'){
@@ -568,18 +484,35 @@
         else if(data.type==='newRound'){
           box = data.box;
           const oppHand = data.hand;
-          const myHand = box.splice(0, 8); // 残り山札から自分の手札を取る
-          const myPrevPoints = sumCoinCounts(players[myPlayerId]?.coinCounts || INITIAL_COIN_COUNTS);
-          const oppPrevPoints = sumCoinCounts(players[1-myPlayerId]?.coinCounts || INITIAL_COIN_COUNTS);
-          players=[ {name:'相手',hand:oppHand,discard:[],points:oppPrevPoints, coinCounts: cloneCoinCounts(players[1-myPlayerId]?.coinCounts || INITIAL_COIN_COUNTS)},
-                    {name:'あなた',hand:myHand,discard:[],points:myPrevPoints, coinCounts: cloneCoinCounts(players[myPlayerId]?.coinCounts || INITIAL_COIN_COUNTS)} ];
-          myPlayerId=1; currentPlayerIndex=data.winnerIndex; gameFinished=false;
-          DOM.opponentArea.style.display='block'; DOM.myDiscardArea.style.display='block';
+          players[0].hand = oppHand;
+          players[1].hand = box.splice(0, 8);
+          players.forEach(p=>{ p.discard = []; });
+          currentPlayerIndex = data.winnerIndex;
+          gameFinished = false; inReach = false; DOM.reachBadge.style.display='none';
           updateBox(); renderHand(); renderMyDiscard(); renderOpponents(); updateTurnDisplay();
           suppressedReachOptions.clear(); renderCoins();
         }
         else if(data.type==='requestNewRound'){
-          if(isHost) startOnlineNewRound(1 - myPlayerId); // リクエストを送った相手（勝者）が親
+          if(isHost) startOnlineNewRound(1 - myPlayerId);
+        }
+        else if(data.type==='requestDraw'){
+          if(!isHost || box.length===0) return;
+          const id=box.pop();
+          const opp = players[1-myPlayerId];
+          opp.hand.push(id);
+          updateBox(); renderOpponents();
+          sendToOpponent({type:'drawResponse', pieceId:id, boxRemaining: box.length});
+        }
+        else if(data.type==='drawResponse'){
+          getMyHand().push(data.pieceId);
+          updateBox(); renderHand();
+          if(data.boxRemaining!==undefined) box = Array(data.boxRemaining).fill(0);
+          if(getMyHand().length===9){
+            if(inReach){
+              const yaku=checkYaku(getMyHand());
+              if(yaku) winGame(yaku,'tsumo');
+            } else setMsg('役がありません。捨てる牌を選んでください');
+          }
         }
       }
 
@@ -613,7 +546,15 @@
       }
 
       function showReachOptions(opts){
-        DOM.reachModalContent.innerHTML='<h3>リーチしますか？</h3><p>可能な役:</p>';
+        // 完全にクリア
+        while(DOM.reachModalContent.firstChild) DOM.reachModalContent.removeChild(DOM.reachModalContent.firstChild);
+        if(!opts || opts.length===0) {
+          DOM.reachModalContent.innerHTML = '<p>リーチ可能な牌はありません。</p>';
+          DOM.reachModal.style.display = 'flex';
+          return;
+        }
+        const header = document.createElement('h3'); header.textContent = 'リーチしますか？';
+        DOM.reachModalContent.appendChild(header);
         opts.forEach(opt=>{
           const div=document.createElement('div'); div.className='reach-yaku-item';
           div.innerHTML=`${opt.yakuName} <span class="reach-badge">${opt.pts}pt</span><br><small>必要: ${PIECE_TYPES[opt.needPieceId].name}</small>`;
@@ -624,7 +565,8 @@
           div.addEventListener('click', (e) => { if (e.target.tagName === 'INPUT' || e.target.tagName === 'LABEL') return; inReach=true; reachNeedPieceIds=[opt.needPieceId]; DOM.reachModal.style.display='none'; DOM.reachBadge.style.display='block'; setMsg(`リーチ: ${opt.yakuName}`); });
           DOM.reachModalContent.appendChild(div);
         });
-        const cancelBtn=document.createElement('button'); cancelBtn.className='btn'; cancelBtn.textContent='いいえ'; cancelBtn.addEventListener('click',()=>{ DOM.reachModal.style.display='none'; }); DOM.reachModalContent.appendChild(cancelBtn); DOM.reachModal.style.display='flex';
+        const cancelBtn=document.createElement('button'); cancelBtn.className='btn'; cancelBtn.textContent='いいえ'; cancelBtn.addEventListener('click',()=>{ DOM.reachModal.style.display='none'; }); DOM.reachModalContent.appendChild(cancelBtn);
+        DOM.reachModal.style.display='flex';
       }
 
       function showResult(winner, yaku){
