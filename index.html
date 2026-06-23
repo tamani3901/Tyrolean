@@ -317,10 +317,7 @@
         setMsg(`${PIECE_TYPES[piece].name}を捨てました`);
         if(currentMode==='pass'){ if(!inReach && getMyHand().length===8){ const opts=getReachOptions(getMyHand()); if(opts.length>0) showReachOptions(opts); } renderOpponents(); }
         else if(currentMode==='cpu'){ nextCpuTurn(); }
-        else {
-          sendToOpponent({type:'discard', pieceId:piece, hand:getMyHand(), discard:players[myPlayerId].discard});
-          myTurn=false; updateTurnDisplay();
-        }
+        else { sendToOpponent({type:'discard', hand:getMyHand(), discard:players[myPlayerId].discard}); myTurn=false; updateTurnDisplay(); }
       }
 
       function renderMyDiscard(){ DOM.myDiscardHistory.innerHTML=''; getMyDiscard().forEach(id=>{ const chip=document.createElement('div'); chip.className='discard-chip'; const img=document.createElement('img'); img.src=PIECE_TYPES[id].img; img.style.width='100%'; chip.appendChild(img); DOM.myDiscardHistory.appendChild(chip); }); }
@@ -369,6 +366,7 @@
         else if(currentMode==='pass'){ players.forEach(p=>p.points=300); startNewRoundPass(true); }
         else { totalPoints=300; coinCounts = {...INITIAL_COIN_COUNTS}; renderCoins(); if(players[myPlayerId]) players[myPlayerId].points=300; }
         DOM.connectionStatus.textContent='未接続'; DOM.startOnlineGameBtn.style.display='none';
+        DOM.startQrGameBtn.style.display='none'; DOM.qrConnectionStatus.textContent='未接続';
       }
 
       function startNewRound(winnerIndex){
@@ -535,7 +533,6 @@
 
       function sendToOpponent(data){ if(conn&&conn.open) conn.send(data); }
 
-      // ---- QR対戦（合言葉と共通） ----
       function showQR(){ qrHost=true; isHost=true; peer=new Peer(); peer.on('open',(id)=>{ DOM.qrCodeContainer.innerHTML=''; new QRCode(DOM.qrCodeContainer,{text:id,width:280,height:280,correctLevel:QRCode.CorrectLevel.L}); DOM.displayedPeerId.textContent=`ID: ${id}`; DOM.qrModal.style.display='flex'; DOM.qrConnectionStatus.textContent='相手がIDを入力して接続するのを待っています...'; }); peer.on('connection',(c)=>{ conn=c; conn.on('data',data=>handleHostMsg(data)); conn.on('open',()=>{ DOM.qrConnectionStatus.textContent='接続完了'; DOM.startQrGameBtn.style.display='inline-block'; }); }); }
       function connectToQrPeer(){ const peerId=DOM.qrPeerIdInput.value.trim(); if(!peerId) return; qrHost=false; isHost=false; peer=new Peer(); peer.on('open',()=>{ conn=peer.connect(peerId); conn.on('data',data=>handleGuestMsg(data)); conn.on('open',()=>{ DOM.qrConnectionStatus.textContent='接続完了'; }); }); }
       function startQrGame(){ startOnlineGame(); }
