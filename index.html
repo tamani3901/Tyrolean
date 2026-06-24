@@ -176,23 +176,35 @@
       ].map(t => ({ ...t, img: IMAGE_BASE_URL + t.file }));
 
       const YAKU_LIST = [
-        { name:'オールワン', pts:300, check:c=>c.some(v=>v===9) },
-        { name:'タブルセット', pts:150, check:c=>c.some(v=>v>=6) },
-        { name:'ミルクセット', pts:120, check:c=>c[2]===3&&c[9]===3&&c[6]===3&&c.reduce((a,b)=>a+b,0)===9 },
-        { name:'おもちセット', pts:120, check:c=>c[7]===3&&c[8]===3&&c[9]===3&&c.reduce((a,b)=>a+b,0)===9 },
-        { name:'ワンカラーセット', pts:90, check:(c,hand)=> {
+        { name:'オールワン', pts:300, check:(c,hand)=>c.some(v=>v===9) },
+        { name:'タブルセット', pts:150, check:(c,hand)=>c.some(v=>v>=6) },
+        { name:'ミルクセット', pts:120, check:(c,hand)=>c[2]===3&&c[9]===3&&c[6]===3&&c.reduce((a,b)=>a+b,0)===9 },
+        { name:'おもちセット', pts:120, check:(c,hand)=>c[7]===3&&c[8]===3&&c[9]===3&&c.reduce((a,b)=>a+b,0)===9 },
+        { name:'ワンカラーセット', pts:90, check:(c,hand)=>{
             if(hand.length !== 9) return false;
             const color = PIECE_TYPES[hand[0]].color;
             if(!hand.every(id => PIECE_TYPES[id].color === color)) return false;
-            const counts = getCounts(hand);
-            return counts.filter(v => v === 3).length === 3;
+            return c.filter(v => v === 3).length === 3;
         }},
-        { name:'ドリンクセット', pts:90, check:c=>c[2]===3&&c[3]===3&&c[4]===3&&c.reduce((a,b)=>a+b,0)===9 },
-        { name:'サクサクおやつセット', pts:90, check:c=>c[10]===3&&c[1]===3&&c[11]===3&&c.reduce((a,b)=>a+b,0)===9 },
-        { name:'キャラセット', pts:75, check:c=>{ const allowed=[10,5,3,7,11]; const present=allowed.filter(i=>c[i]===3); return present.length===3 && allowed.every(i=>c[i]===3||c[i]===0) && c.reduce((a,b)=>a+b,0)===9; }},
-        { name:'基本セット', pts:60, check:c=>c[0]===3&&c[2]===3&&c[10]===3&&c.reduce((a,b)=>a+b,0)===9 },
-        { name:'アフタヌーンセット', pts:45, check:c=>{ if(c[2]!==3) return false; const g1=[0,1]; const g2=[3,4,5,6]; const g1ok=g1.filter(i=>c[i]===3).length===1 && g1.every(i=>c[i]===3||c[i]===0); const g2ok=g2.filter(i=>c[i]===3).length===1 && g2.every(i=>c[i]===3||c[i]===0); return g1ok&&g2ok && c.reduce((a,b)=>a+b,0)===9; }},
-        { name:'バラエティ', pts:30, check:c=>{ const non=[1,3,4,5,6,7,8,9,11]; return non.every(i=>c[i]===1) && c[0]===0&&c[2]===0&&c[10]===0; }}
+        { name:'ドリンクセット', pts:90, check:(c,hand)=>c[2]===3&&c[3]===3&&c[4]===3&&c.reduce((a,b)=>a+b,0)===9 },
+        { name:'サクサクおやつセット', pts:90, check:(c,hand)=>c[10]===3&&c[1]===3&&c[11]===3&&c.reduce((a,b)=>a+b,0)===9 },
+        { name:'キャラセット', pts:75, check:(c,hand)=>{
+            const allowed=[10,5,3,7,11];
+            const present=allowed.filter(i=>c[i]===3);
+            return present.length===3 && allowed.every(i=>c[i]===3||c[i]===0) && c.reduce((a,b)=>a+b,0)===9;
+        }},
+        { name:'基本セット', pts:60, check:(c,hand)=>c[0]===3&&c[2]===3&&c[10]===3&&c.reduce((a,b)=>a+b,0)===9 },
+        { name:'アフタヌーンセット', pts:45, check:(c,hand)=>{
+            if(c[2]!==3) return false;
+            const g1=[0,1]; const g2=[3,4,5,6];
+            const g1ok = g1.filter(i=>c[i]===3).length === 1 && g1.every(i=>c[i]===3||c[i]===0);
+            const g2ok = g2.filter(i=>c[i]===3).length === 1 && g2.every(i=>c[i]===3||c[i]===0);
+            return g1ok && g2ok && c.reduce((a,b)=>a+b,0)===9;
+        }},
+        { name:'バラエティ', pts:30, check:(c,hand)=>{
+            const non=[1,3,4,5,6,7,8,9,11];
+            return non.every(i=>c[i]===1) && c[0]===0 && c[2]===0 && c[10]===0;
+        }}
       ];
 
       let box=[], players=[], currentPlayerIndex=0, gameFinished=false;
@@ -313,6 +325,11 @@
 
       function selectDiscard(index){
         if(!isMyTurn() || getMyHand().length!==9) return;
+        // リーチ中は必要な牌を捨てられない
+        if(inReach && reachNeedPieceIds.includes(getMyHand()[index])) {
+          setMsg('リーチに必要な牌は捨てられません', false);
+          return;
+        }
         DOM.handContainer.querySelectorAll('.piece-slot').forEach(s=>s.classList.remove('selected'));
         selectedDiscardIndex=index;
         DOM.handContainer.querySelectorAll('.piece-slot')[index].classList.add('selected');
@@ -321,6 +338,12 @@
 
       function confirmDiscard(){
         if(selectedDiscardIndex===null || getMyHand().length!==9) return;
+        const pieceId = getMyHand()[selectedDiscardIndex];
+        // リーチ中は必要な牌を捨てられない
+        if(inReach && reachNeedPieceIds.includes(pieceId)) {
+          setMsg('リーチに必要な牌は捨てられません', false);
+          return;
+        }
         const piece = getMyHand().splice(selectedDiscardIndex,1)[0];
         players[myPlayerId].discard.push(piece);
         renderHand(); renderMyDiscard(); selectedDiscardIndex=null;
@@ -443,7 +466,65 @@
         suppressedReachOptions.clear(); renderCoins();
       }
 
-      function cpuTurn(){ if(gameFinished||currentPlayerIndex!==1) return; const id=box.pop(); players[1].hand.push(id); updateBox(); if(players[1].hand.length===9){ const yaku=checkYaku(players[1].hand); if(yaku){ cpuWin(yaku); return; } const counts=getCounts(players[1].hand); let min=10,cands=[]; counts.forEach((c,i)=>{ if(c>0&&c<min){ min=c; cands=[i]; } else if(c===min) cands.push(i); }); const discardId=cands[Math.floor(Math.random()*cands.length)]; players[1].hand.splice(players[1].hand.indexOf(discardId),1); players[1].discard.push(discardId); setMsg(`CPUが${PIECE_TYPES[discardId].name}を捨てました`); renderOpponents(); } nextCpuTurn(); }
+      function cpuTurn(){ 
+        if(gameFinished||currentPlayerIndex!==1) return; 
+        const id=box.pop(); players[1].hand.push(id); updateBox(); 
+        if(players[1].hand.length===9){ 
+          // CPUがリーチ中なら上がり判定
+          if(players[1].reach) {
+            const yaku=checkYaku(players[1].hand); 
+            if(yaku){ cpuWin(yaku); return; }
+          }
+          // CPUのリーチ判定（手札8枚のときにリーチ可能ならリーチする）
+          if(!players[1].reach) {
+            const opts = getReachOptions(players[1].hand.slice(0,8));
+            if(opts.length > 0) {
+              // CPUはランダムにリーチする（70%の確率）
+              if(Math.random() < 0.7) {
+                const chosen = opts[Math.floor(Math.random()*opts.length)];
+                players[1].reach = true;
+                players[1].reachNeedPieceIds = [chosen.needPieceId];
+                opponentInReach = true;
+                setMsg(`CPUがリーチ: ${chosen.yakuName}`);
+                renderOpponents();
+                // リーチ後、不要牌を捨てる（必要な牌以外）
+                const counts=getCounts(players[1].hand); 
+                let min=10,cands=[]; 
+                counts.forEach((c,i)=>{ 
+                  if(c>0 && i !== chosen.needPieceId && c<min){ min=c; cands=[i]; } 
+                  else if(c>0 && i !== chosen.needPieceId && c===min) cands.push(i); 
+                });
+                if(cands.length === 0) cands = [chosen.needPieceId]; // 万が一すべて必要な牌なら、必要な牌を捨てる（避けられない）
+                const discardId=cands[Math.floor(Math.random()*cands.length)]; 
+                players[1].hand.splice(players[1].hand.indexOf(discardId),1); 
+                players[1].discard.push(discardId); 
+                setMsg(`CPUが${PIECE_TYPES[discardId].name}を捨てました`); 
+                renderOpponents(); 
+                nextCpuTurn();
+                return;
+              }
+            }
+          }
+          // 通常の捨て牌選択
+          const counts=getCounts(players[1].hand); 
+          let min=10,cands=[]; 
+          counts.forEach((c,i)=>{ 
+            if(players[1].reach && players[1].reachNeedPieceIds.includes(i)) return; // リーチ中は必要な牌をキープ
+            if(c>0&&c<min){ min=c; cands=[i]; } 
+            else if(c===min) cands.push(i); 
+          });
+          if(cands.length === 0) {
+            // リーチ中で全てが必要牌なら、やむなく必要牌から捨てる
+            counts.forEach((c,i)=>{ if(c>0&&c<min){ min=c; cands=[i]; } else if(c===min) cands.push(i); });
+          }
+          const discardId=cands[Math.floor(Math.random()*cands.length)]; 
+          players[1].hand.splice(players[1].hand.indexOf(discardId),1); 
+          players[1].discard.push(discardId); 
+          setMsg(`CPUが${PIECE_TYPES[discardId].name}を捨てました`); 
+          renderOpponents(); 
+        } 
+        nextCpuTurn(); 
+      }
       function nextCpuTurn(){ if(gameFinished) return; currentPlayerIndex=(currentPlayerIndex+1)%2; renderOpponents(); updateTurnDisplay(); if(currentPlayerIndex !== 0) setTimeout(cpuTurn,1000); else if(!inReach && getMyHand().length===8){ const opts=getReachOptions(getMyHand()); if(opts.length>0) showReachOptions(opts); } }
       function cpuWin(yaku){ gameFinished=true; inReach=false; applyPoints(1,yaku.pts,'tsumo'); renderOpponents(); showResult(false,yaku); }
 
@@ -646,7 +727,9 @@
           else if(winner){ continueBtn=`<button class="btn" id="continueBtn">次のラウンドへ</button>`; }
           else { continueBtn=`<p>相手が次のラウンドを開始します...</p>`; }
         }
-        DOM.resultModalContent.innerHTML=`<h2>${msg}</h2><p>現在のポイント: ${players.map(p=>p.name+': '+sumCoinCounts(p.coinCounts)+'pt').join(', ')}</p>${continueBtn}`;
+        // 常に閉じるボタンを追加
+        const closeBtn = `<button class="btn" id="closeResultBtn" style="margin-top:8px;">閉じる</button>`;
+        DOM.resultModalContent.innerHTML=`<h2>${msg}</h2><p>現在のポイント: ${players.map(p=>p.name+': '+sumCoinCounts(p.coinCounts)+'pt').join(', ')}</p>${continueBtn}${closeBtn}`;
         DOM.resultModal.style.display='flex';
         const contBtn=document.getElementById('continueBtn');
         if(contBtn) contBtn.addEventListener('click',()=>{
@@ -656,6 +739,9 @@
             if(isHost) startOnlineNewRound(myPlayerId);
             else sendToOpponent({type:'requestNewRound'});
           }
+        });
+        document.getElementById('closeResultBtn').addEventListener('click', ()=>{
+          DOM.resultModal.style.display='none';
         });
         suppressedReachOptions.clear();
       }
