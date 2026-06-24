@@ -325,7 +325,6 @@
 
       function selectDiscard(index){
         if(!isMyTurn() || getMyHand().length!==9) return;
-        // リーチ中は必要な牌を捨てられない
         if(inReach && reachNeedPieceIds.includes(getMyHand()[index])) {
           setMsg('リーチに必要な牌は捨てられません', false);
           return;
@@ -339,7 +338,6 @@
       function confirmDiscard(){
         if(selectedDiscardIndex===null || getMyHand().length!==9) return;
         const pieceId = getMyHand()[selectedDiscardIndex];
-        // リーチ中は必要な牌を捨てられない
         if(inReach && reachNeedPieceIds.includes(pieceId)) {
           setMsg('リーチに必要な牌は捨てられません', false);
           return;
@@ -470,16 +468,13 @@
         if(gameFinished||currentPlayerIndex!==1) return; 
         const id=box.pop(); players[1].hand.push(id); updateBox(); 
         if(players[1].hand.length===9){ 
-          // CPUがリーチ中なら上がり判定
           if(players[1].reach) {
             const yaku=checkYaku(players[1].hand); 
             if(yaku){ cpuWin(yaku); return; }
           }
-          // CPUのリーチ判定（手札8枚のときにリーチ可能ならリーチする）
           if(!players[1].reach) {
             const opts = getReachOptions(players[1].hand.slice(0,8));
             if(opts.length > 0) {
-              // CPUはランダムにリーチする（70%の確率）
               if(Math.random() < 0.7) {
                 const chosen = opts[Math.floor(Math.random()*opts.length)];
                 players[1].reach = true;
@@ -487,14 +482,13 @@
                 opponentInReach = true;
                 setMsg(`CPUがリーチ: ${chosen.yakuName}`);
                 renderOpponents();
-                // リーチ後、不要牌を捨てる（必要な牌以外）
                 const counts=getCounts(players[1].hand); 
                 let min=10,cands=[]; 
                 counts.forEach((c,i)=>{ 
                   if(c>0 && i !== chosen.needPieceId && c<min){ min=c; cands=[i]; } 
                   else if(c>0 && i !== chosen.needPieceId && c===min) cands.push(i); 
                 });
-                if(cands.length === 0) cands = [chosen.needPieceId]; // 万が一すべて必要な牌なら、必要な牌を捨てる（避けられない）
+                if(cands.length === 0) cands = [chosen.needPieceId];
                 const discardId=cands[Math.floor(Math.random()*cands.length)]; 
                 players[1].hand.splice(players[1].hand.indexOf(discardId),1); 
                 players[1].discard.push(discardId); 
@@ -505,16 +499,14 @@
               }
             }
           }
-          // 通常の捨て牌選択
           const counts=getCounts(players[1].hand); 
           let min=10,cands=[]; 
           counts.forEach((c,i)=>{ 
-            if(players[1].reach && players[1].reachNeedPieceIds.includes(i)) return; // リーチ中は必要な牌をキープ
+            if(players[1].reach && players[1].reachNeedPieceIds.includes(i)) return;
             if(c>0&&c<min){ min=c; cands=[i]; } 
             else if(c===min) cands.push(i); 
           });
           if(cands.length === 0) {
-            // リーチ中で全てが必要牌なら、やむなく必要牌から捨てる
             counts.forEach((c,i)=>{ if(c>0&&c<min){ min=c; cands=[i]; } else if(c===min) cands.push(i); });
           }
           const discardId=cands[Math.floor(Math.random()*cands.length)]; 
@@ -727,7 +719,6 @@
           else if(winner){ continueBtn=`<button class="btn" id="continueBtn">次のラウンドへ</button>`; }
           else { continueBtn=`<p>相手が次のラウンドを開始します...</p>`; }
         }
-        // 常に閉じるボタンを追加
         const closeBtn = `<button class="btn" id="closeResultBtn" style="margin-top:8px;">閉じる</button>`;
         DOM.resultModalContent.innerHTML=`<h2>${msg}</h2><p>現在のポイント: ${players.map(p=>p.name+': '+sumCoinCounts(p.coinCounts)+'pt').join(', ')}</p>${continueBtn}${closeBtn}`;
         DOM.resultModal.style.display='flex';
