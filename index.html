@@ -264,6 +264,7 @@
 
       function getReachOptions(h){
         if(h.length!==8) return [];
+        const counts = getCounts(h);
         const allOpts=[];
         for(let pid=0; pid<12; pid++){
           const th=[...h, pid];
@@ -272,17 +273,16 @@
             const key = `${yaku.name}_${pid}`;
             if(suppressedReachOptions.has(key)) continue;
             if(dismissedReachOptionsThisTurn.includes(key)) continue;
+            // ★ タブルセットの場合：追加する牌が手札に5枚以上ある牌と一致する場合のみ有効
+            if(yaku.name === 'タブルセット') {
+              if(counts[pid] < 5) continue; // 追加する牌が手札に5枚未満ならダブルセットにならない
+            }
             if(!allOpts.some(o=>o.key===key)){
               allOpts.push({yakuName:yaku.name, pts:yaku.pts, needPieceId:pid, key: key});
             }
           }
         }
-        // ダブルセット以外の候補があれば、ダブルセット候補は表示しない
-        const nonDouble = allOpts.filter(o => o.yakuName !== 'タブルセット');
-        if(nonDouble.length > 0) {
-          return nonDouble;
-        }
-        return allOpts; // ダブルセットのみならそのまま返す
+        return allOpts;
       }
 
       function getMyHand(){ return players[myPlayerId]?.hand || []; }
@@ -354,6 +354,8 @@
         players[myPlayerId].discard.push(piece);
         renderHand(); renderMyDiscard(); selectedDiscardIndex=null;
         setMsg(`${PIECE_TYPES[piece].name}を捨てました`);
+        // 捨てた後、一時的に非表示にしたリーチ候補はクリア（新たな手札で再判定）
+        dismissedReachOptionsThisTurn = [];
         if(currentMode==='pass'){ if(!inReach && getMyHand().length===8){ checkAndShowReach(); } renderOpponents(); }
         else if(currentMode==='cpu'){ nextCpuTurn(); }
         else { sendToOpponent({type:'discard', pieceId:piece, hand:getMyHand(), discard:players[myPlayerId].discard}); currentPlayerIndex = 1 - myPlayerId; updateTurnDisplay(); if(!inReach && getMyHand().length===8){ checkAndShowReach(); } }
@@ -535,7 +537,7 @@
         } 
         nextCpuTurn(); 
       }
-      function nextCpuTurn(){ if(gameFinished) return; currentPlayerIndex=(currentPlayerIndex+1)%2; renderOpponents(); updateTurnDisplay(); if(currentPlayerIndex !== 0) setTimeout(cpuTurn,1000); else if(!inReach && getMyHand().length===8){ checkAndShowReach(); } }
+      function nextCpuTurn(){ if(gameFinished) return; currentPlayerIndex=(currentPlayerIndex+1)%2; renderOpponents(); updateTurnDisplay(); if(currentPlayerIndex !== 0) setTimeout(cpuTurn,1000); else { dismissedReachOptionsThisTurn = []; if(!inReach && getMyHand().length===8){ checkAndShowReach(); } } }
       function cpuWin(yaku){ gameFinished=true; inReach=false; applyPoints(1,yaku.pts,'tsumo'); renderOpponents(); showResult(false,yaku); }
 
       function createRoom(){ const code=document.getElementById('roomCodeInput').value.trim(); if(!/^\d{4,6}$/.test(code)){ setMsg('合言葉は4〜6桁の数字',false); return; } isHost=true; peer=new Peer(code); peer.on('open',()=>{ DOM.connectionStatus.textContent=`部屋作成: ${code}`; }); peer.on('connection',c=>{ conn=c; conn.on('data',data=>handleOpponentMessage(data)); conn.on('open',()=>{ DOM.connectionStatus.textContent='接続完了'; DOM.startOnlineGameBtn.style.display='inline-block'; }); }); }
