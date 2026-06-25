@@ -88,7 +88,7 @@
     </div>
 
     <div class="rules-box">
-      <details><summary>📖 ルール</summary>・8枚スタート→引いて9枚→不要牌を捨てる<br>・3枚セット×3組でアガリ<br>・相手の最後の捨て牌でロン可能<br>・リーチあり（捨てた後に選択可能）<br>・誰かのポイントが0になるまでラウンドを繰り返す</details>
+      <details><summary>📖 ルール</summary>・8枚スタート→引いて9枚→不要牌を捨てる<br>・3枚セット×3組でアガリ<br>・相手の最後の捨て牌でロン可能（リーチ中のみ）<br>・リーチあり（捨てた後に選択可能）<br>・誰かのポイントが0になるまでラウンドを繰り返す</details>
     </div>
 
     <button class="btn" id="startCpuGameBtn">▶️ CPU戦を始める</button>
@@ -107,7 +107,7 @@
 
     <div class="info-area" id="opponentArea" style="display:none;">
       <div>🤝 相手の手札: <span id="opponentHandCount">0</span>枚 <span id="opponentReachBadge">⚡リーチ中</span></div>
-      <div>捨て牌（赤枠の最後の1枚だけロン可能）:</div>
+      <div>捨て牌（リーチ中のみロン可能）:</div>
       <div class="discard-history" id="opponentDiscardHistory"></div>
     </div>
 
@@ -273,9 +273,9 @@
             const key = `${yaku.name}_${pid}`;
             if(suppressedReachOptions.has(key)) continue;
             if(dismissedReachOptionsThisTurn.includes(key)) continue;
-            // ★ タブルセットの場合：追加する牌が手札に5枚以上ある牌と一致する場合のみ有効
+            // ★ タブルセットの場合：追加する牌が手札にちょうど5枚ある場合のみ有効（6枚以上ならすでに成立しているのでリーチ不要）
             if(yaku.name === 'タブルセット') {
-              if(counts[pid] < 5) continue; // 追加する牌が手札に5枚未満ならダブルセットにならない
+              if(counts[pid] !== 5) continue;
             }
             if(!allOpts.some(o=>o.key===key)){
               allOpts.push({yakuName:yaku.name, pts:yaku.pts, needPieceId:pid, key: key});
@@ -354,7 +354,6 @@
         players[myPlayerId].discard.push(piece);
         renderHand(); renderMyDiscard(); selectedDiscardIndex=null;
         setMsg(`${PIECE_TYPES[piece].name}を捨てました`);
-        // 捨てた後、一時的に非表示にしたリーチ候補はクリア（新たな手札で再判定）
         dismissedReachOptionsThisTurn = [];
         if(currentMode==='pass'){ if(!inReach && getMyHand().length===8){ checkAndShowReach(); } renderOpponents(); }
         else if(currentMode==='cpu'){ nextCpuTurn(); }
@@ -423,7 +422,12 @@
       }
 
       function ronRequest(discardId, fromIndex){
+        // ★ リーチ中のみロン可能
         if(!isMyTurn() || getMyHand().length!==8) return;
+        if(!inReach) {
+          setMsg('リーチ中のみロンできます', false);
+          return;
+        }
         const testHand=[...getMyHand(), discardId]; const yaku=checkYaku(testHand);
         if(yaku){ if(inReach && !reachNeedPieceIds.includes(discardId)){ setMsg('リーチ中の必要牌ではありません', false); return; } getMyHand().push(discardId); if(currentMode==='pass' || currentMode==='cpu'){ winGame(yaku,'ron', fromIndex); } else { winGame(yaku,'ron', fromIndex); sendToOpponent({type:'win', yaku:yaku, method:'ron', discardId}); } }
         else setMsg('その牌ではアガれません', false);
