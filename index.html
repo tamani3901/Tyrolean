@@ -210,8 +210,8 @@
       let box=[], players=[], currentPlayerIndex=0, gameFinished=false;
       let currentMode='cpu', myPlayerId=0, peer=null, conn=null, isHost=false, qrHost=false;
       let selectedDiscardIndex=null, inReach=false, reachNeedPieceIds=[], opponentInReach=false;
-      let suppressedReachOptions = new Set(); // 恒久的に非表示にするオプション
-      let dismissedReachOptionsThisTurn = []; // 今回のターンで「いいえ」を押したときに一時的に非表示にするオプション
+      let suppressedReachOptions = new Set();
+      let dismissedReachOptionsThisTurn = [];
       const INITIAL_COIN_COUNTS = {100:1, 50:2, 10:6, 5:8};
 
       const DOM = {
@@ -262,23 +262,27 @@
       function isValidHand(hand){ const c=getCounts(hand); return c.filter(v=>v===3).length===3 && c.reduce((a,b)=>a+b,0)===9; }
       function checkYaku(h){ const c=getCounts(h); for(let y of YAKU_LIST) if(y.check(c,h)) return {name:y.name, pts:y.pts}; if(isValidHand(h)) return {name:'なんでも3種', pts:15}; return null; }
 
-      function getReachOptions(h, excludeKeys = []){
+      function getReachOptions(h){
         if(h.length!==8) return [];
-        const opts=[];
+        const allOpts=[];
         for(let pid=0; pid<12; pid++){
           const th=[...h, pid];
           const yaku=checkYaku(th);
           if(yaku){
             const key = `${yaku.name}_${pid}`;
-            // 恒久的に非表示、または今回のターンで一時的に非表示のものはスキップ
             if(suppressedReachOptions.has(key)) continue;
-            if(excludeKeys.includes(key)) continue;
-            if(!opts.some(o=>o.yakuName===yaku.name&&o.needPieceId===pid)){
-              opts.push({yakuName:yaku.name, pts:yaku.pts, needPieceId:pid, key: key});
+            if(dismissedReachOptionsThisTurn.includes(key)) continue;
+            if(!allOpts.some(o=>o.key===key)){
+              allOpts.push({yakuName:yaku.name, pts:yaku.pts, needPieceId:pid, key: key});
             }
           }
         }
-        return opts;
+        // ダブルセット以外の候補があれば、ダブルセット候補は表示しない
+        const nonDouble = allOpts.filter(o => o.yakuName !== 'タブルセット');
+        if(nonDouble.length > 0) {
+          return nonDouble;
+        }
+        return allOpts; // ダブルセットのみならそのまま返す
       }
 
       function getMyHand(){ return players[myPlayerId]?.hand || []; }
@@ -356,11 +360,9 @@
       }
 
       function checkAndShowReach() {
-        const allOpts = getReachOptions(getMyHand());
-        // 今回のターンで「いいえ」にしたものを除外
-        const newOpts = allOpts.filter(opt => !dismissedReachOptionsThisTurn.includes(opt.key));
-        if(newOpts.length > 0) {
-          showReachOptions(newOpts);
+        const opts = getReachOptions(getMyHand());
+        if(opts.length > 0) {
+          showReachOptions(opts);
         }
       }
 
@@ -710,6 +712,7 @@
         }
         const header = document.createElement('h3'); header.textContent = 'リーチしますか？';
         DOM.reachModalContent.appendChild(header);
+        const keysToShow = opts.map(o => o.key);
         opts.forEach(opt=>{
           const div=document.createElement('div'); div.className='reach-yaku-item';
           div.innerHTML=`${opt.yakuName} <span class="reach-badge">${opt.pts}pt</span><br><small>必要: ${PIECE_TYPES[opt.needPieceId].name}</small>`;
@@ -722,8 +725,7 @@
         });
         const cancelBtn=document.createElement('button'); cancelBtn.className='btn'; cancelBtn.textContent='いいえ';
         cancelBtn.addEventListener('click',()=>{ 
-          // 「いいえ」を押したら、今回表示したオプションを一時的に非表示にする
-          dismissedReachOptionsThisTurn = dismissedReachOptionsThisTurn.concat(opts.map(o => o.key));
+          dismissedReachOptionsThisTurn = dismissedReachOptionsThisTurn.concat(keysToShow);
           DOM.reachModal.style.display = 'none'; 
         }); 
         DOM.reachModalContent.appendChild(cancelBtn);
